@@ -6,7 +6,7 @@ QEMU_ARGS = -drive format=raw,file=$(BOOT_IMG)
 
 $(BOOT_BIN): src/arch/$(ARCH)/boot.asm
 	mkdir -p $(@D)
-	nasm -f bin $^ -o $@
+	nasm -f bin $^ -o $@ -i src/arch/$(ARCH)
 
 run: $(BOOT_IMG)
 ifeq ($(ARCH), x86)
@@ -28,3 +28,5 @@ $(BOOT_IMG): $(BOOT_BIN)
 
 clean:
 	rm -rf out/*
+	rm -rf *.dump
+	rm -rf *.mem
