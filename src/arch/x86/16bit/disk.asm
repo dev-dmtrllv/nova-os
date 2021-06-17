@@ -30,6 +30,7 @@ read_sectors: ; cx = number of sectors, dx = pointer to buffer
 	jc .read_sectors_failed
 	popa
 	add dx, 0x200	; add 512 bytes
+	inc word [dap_lba]
 	jc .read_sectors_add_seg
 	loop read_sectors
 	ret
@@ -41,19 +42,16 @@ read_sectors: ; cx = number of sectors, dx = pointer to buffer
 	ret
 
 .read_sectors_failed:
-	; popa
-	; xor ax, ax
-	; mov es, ax
-	; mov si, msg_read_sector_failed
-	; call print_line
-	; stc
 	ret
 
 
 
 
 read_file:
-	mov word [file_name], ax
+	mov bp, sp
+	mov dx, word [bp]
+	mov word [read_file_return_addr], dx	; save the return address
+
     mov ax, 0x0020                      	; 32 byte directory entry
     mul word [rootDirEntries]           	; total size of directory
     div word [bytesPerSector]        		; sectors used by directory
@@ -89,8 +87,6 @@ find_file_loop:
 
 found_file:
 	mov dx, [di + 0x001a]					; get byte 26 for the cluster number
-	mov ax, 0x7c00
-	mov sp, ax
 	push dx
 	mov bp, sp
 	mov word [file_cluster_start], bp
@@ -138,10 +134,10 @@ load_file_cluster:
 
 load_file_cluster_done:
 	clc
+	jmp word [read_file_return_addr]
 	ret
 
 file_not_found:
-	stc
 	ret
 
 
@@ -158,8 +154,11 @@ dap_buf_seg:				dw 0x0
 dap_lba:					dd 0x0
 							dd 0x0
 data_sector:				dw 0x0
-; msg_read_sector_failed:		db "Reading sector failed!", 0
+
 file_name:					dw 0x0
 file_cluster_start:			dw 0x0
 file_buff_off:				dw 0x0
 file_buff_seg:				dw 0x0
+read_file_return_addr:		dw 0x0
+
+%include "16bit/bpb.asm"
