@@ -145,8 +145,8 @@ load_img_cluster_done:
 
 
 disk_ext_err:
-	; mov si, msg_drive_ext_fail
-	; call print
+	mov si, msg_drive_ext_fail
+	call print
 	jmp err_exit
 
 img_not_found:

@@ -45,7 +45,6 @@ $(BOOT_IMG): $(BOOT_BINARIES)
 	# skip 91 bytes from out boot.bin because this is the BPB created by the formatter
 	dd bs=1 skip=62 if=$(BOOT_BIN) iflag=skip_bytes of=$@ seek=62 conv=notrunc
 	mcopy -n -o -i $@ $(BOOT2_BIN) ::/$(BOOT_BIN_NAME)
-	mcopy -n -o -i $@ long-text-file.txt ::/TEST.TXT
 
 dump: $(DUMP_FILE)
 	sudo xxd -l $(DUMP_BYTES) $^ > $@
