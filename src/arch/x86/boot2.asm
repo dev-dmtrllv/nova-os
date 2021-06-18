@@ -70,6 +70,27 @@ code_desc:
 	lidt [idt]
 
 
+	mov	eax, cr0								; set cr0 PE-bit to enable 32bit
+  	or eax, 1
+  	mov cr0, eax
+
+	jmp queue_cleared
+    nop
+    nop
+
+queue_cleared:
+	mov ax, 0x10								; set descriptor
+	mov ds, ax
+	mov es, ax
+	mov fs, ax
+	mov gs, ax
+	mov ss, ax
+	mov esp, 0xffff  							; Set stack to grown downwards from 0x10000
+
+	db 0x66
+  	db 0xEA
+  	dd 0x10000            						; kernel offset
+  	dw 0x0008             						; desciptor selector
 
 	jmp halt
 
@@ -91,7 +112,7 @@ msg_a20_enabled			db "A20 enabled!", 0
 msg_a20_err				db "A20 could not be enabled!", 0
 msg_setup				db "Setting up the GDT & IDT...", 0
 
-kernel_img_name			db "KERNEL  BIN", 0
+kernel_img_name			db "KERNEL  IMG", 0
 
 
 gdt:

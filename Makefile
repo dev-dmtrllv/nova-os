@@ -24,19 +24,21 @@ out/x86/%.bin: src/arch/x86/%.asm
 	nasm -f bin $^ -o $@ -i src/arch/$(ARCH)
 
 out/x86/%.o: src/kernel/%.cpp
+	mkdir -p $(@D)
 	i686-elf-g++ -c $^ -o $@ -ffreestanding -O2 -Wall -Wextra -fno-exceptions -fno-rtti
 
 %.dump: %.mem
 	xxd $^ > $@
 
 run:
-	rm -rf out/x86/boot.img
-	rm -rf out/x86/boot2.bin
 	make boot
 	make xxd
 
 test:
 	echo $(BOOT_BINARIES)
+
+out/$(ARCH)/kernel.img: out/x86/main.o
+	i686-elf-gcc -T linker.ld -o $@ -ffreestanding -O2 -nostdlib $^ -lgcc
 
 boot: $(BOOT_IMG)
 ifeq ($(ARCH), x86)
@@ -49,7 +51,7 @@ ifeq ($(ARCH), arm)
 	qemu-system-arm $(QEMU_ARGS)
 endif
 
-$(BOOT_IMG): $(BOOT_BINARIES)
+$(BOOT_IMG): $(BOOT_BINARIES) out/$(ARCH)/kernel.img
 	test -e $@ || mkfs.fat -F 16 -C $@ 256000
 	# copy the first 3 bytes
 	dd bs=1 if=out/$(ARCH)/$(BOOT_BIN) count=3 of=$@ conv=notrunc
@@ -57,6 +59,7 @@ $(BOOT_IMG): $(BOOT_BINARIES)
 	dd bs=1 skip=62 if=out/$(ARCH)/$(BOOT_BIN) iflag=skip_bytes of=$@ seek=62 conv=notrunc
 	mcopy -n -o -i $@ out/$(ARCH)/$(BOOT2_BIN) ::/$(BOOT_BIN_NAME)
 	mcopy -n -o -i $@ test.txt ::/TEST.TXT
+	mcopy -n -o -i $@ out/$(ARCH)/kernel.img ::/KERNEL.IMG
 
 dump: $(DUMP_FILE)
 	sudo xxd -l $(DUMP_BYTES) $^ > $@
