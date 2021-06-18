@@ -1,6 +1,6 @@
 #include <kernel/drivers/vga.h>
 
-const volatile char* VGA::buffer = (volatile char*)0xb8000;
+// const volatile char* VGA::buffer = (volatile char*);
 
 VGA::Color VGA::color = VGA::Color::WHITE;
 VGA::Color VGA::background = VGA::Color::BLACK;
@@ -21,10 +21,10 @@ void VGA::setBackground(const VGA::Color bgColor)
 
 void VGA::write(const char* str)
 {
-	volatile char* ptr = const_cast<volatile char*>(VGA::buffer);
+	volatile char* ptr = (volatile char*)0xb8000;
 	while(*str != 0)
     {
         *ptr++ = *str++;
-        *ptr++ = 0xf0;
+        *ptr++ = VGA::colorAttr;
     }
 }

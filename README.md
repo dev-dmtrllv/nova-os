@@ -67,8 +67,6 @@
 		+---+ filesystems (vfs, fat16, fat32, ext2, ntfs)
 		|
 		+---+ screen (VGA, VESA)
-		|
-		+---+ screen (VGA, VESA)
 	
 ```
 

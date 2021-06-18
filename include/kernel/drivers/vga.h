@@ -29,7 +29,7 @@ class VGA
 		static void write(const char* str);
 
 	private:
-		static const volatile char* buffer;
+		// static const volatile char* buffer;
 		static Color color;
 		static Color background;
 
