@@ -1,0 +1,6 @@
+
+
+void kmain()
+{
+	while(true){}
+}

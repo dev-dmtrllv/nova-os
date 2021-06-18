@@ -46,24 +46,25 @@ boot_resume:
 	sti										; start interrupts
 
 	call check_drive_ext					; check if we can use the bios drive extension to read from the drive
-	jc disk_ext_err
+	jc err_disk_ext
 
 	mov word [file_name], img_name
-	mov word [file_buff_off], 0x8000
-	mov word [file_buff_seg], 0x0 
+	mov word [dap_buf_off], 0x1000
 	call read_file
-	jc img_not_found
-	jmp 0x0000:0x8000
+	jc err_read_file
+	jmp 0x1000
 
-disk_ext_err:
+
+err_read_file:
+	mov si, msg_file_not_found
+	jmp print_exit
+
+err_disk_ext:
 	mov si, msg_drive_ext_fail
-	call print
-	jmp err_exit
 
-img_not_found:
-	mov si, msg_img_not_found
-	call print
-	jmp err_exit
+print_exit:
+	call print_line
+	jmp halt
 
 %include "16bit/screen.asm"
 %include "16bit/disk.asm"
@@ -72,8 +73,8 @@ img_not_found:
 ;-----------------------------------;
 ;				DATA				;
 ;-----------------------------------; 
-msg_drive_ext_fail:			db "NO EXT!", 0
-msg_img_not_found:			db "NO IMG!", 0
+msg_drive_ext_fail:			db "e1", 0	; Drive ext not supported!
+msg_file_not_found:			db "e2", 0	; read file err!
 img_name:					db "NOVALDR BIN", 0
 
 times 510-($-$$) db 0

@@ -2,59 +2,58 @@ check_drive_ext:
 	xor ax, ax
 	xor dx, dx
 	mov ah, 0x41
-	mov dl, [drive]
-	mov bx, 0x55AA
+	mov dl, byte [drive]
+	mov bx, 0x55aa
 	int 0x13
+	; jc .drive_ext_err
+	; cmp bx, 0xaa55
+	; jnz .drive_ext_err
 	ret
 
-cluster_to_lba: ; (ax) lba = (cluster_num - 2) * num_of_sect_in_cluster
-	push cx
-	sub ax, 0x0002
-	xor cx, cx
-	mov cl, byte [sectorsPerCluster]
-	mul cx
-	add ax, WORD [data_sector]
-	pop cx
-	ret
+; .drive_ext_err:
+	; stc
+	; ret
 
-read_sectors: ; cx = number of sectors, dx = pointer to buffer
-	pusha
-	mov word [dap_buf_off], dx
-	xor ax, ax
+
+
+
+
+read_sectors:				; cx = number of sectors to load
+	mov ax, 0x4200
 	xor dx, dx
 	mov ds, dx
-	mov ah, 0x42
-	mov dl, byte [drive]
+	mov dl, [drive]
 	mov si, dap
 	int 0x13
-	jc .read_sectors_failed
-	popa
-	add dx, 0x200	; add 512 bytes
+	jc .read_sectors_err
+	dec cx
+	cmp cx, 0
+	jnz .read_next_sectors
+	ret
+
+.read_next_sectors:
 	inc word [dap_lba]
+	mov ax, word [dap_buf_off]
+	add ax, word [bytesPerSector]
+	mov word [dap_buf_off], ax
 	jc .read_sectors_add_seg
-	loop read_sectors
-	ret
+	jmp read_sectors
+
 .read_sectors_add_seg:
-	mov ax, word [dap_buf_seg]
-	add ax, 0x1000
-	mov word [dap_buf_seg], ax
-	loop read_sectors
-	ret
+	add word [dap_buf_seg], 0x1000
+	jmp read_sectors
 
-.read_sectors_failed:
+.read_sectors_err:
 	ret
 
 
 
 
-read_file:
-	mov bp, sp
-	mov dx, word [bp]
-	mov word [read_file_return_addr], dx	; save the return address
 
-    mov ax, 0x0020                      	; 32 byte directory entry
-    mul word [rootDirEntries]           	; total size of directory
-    div word [bytesPerSector]        		; sectors used by directory
+find_file_start_cluster:					; set word [file_name] to point to file name; returns dx = cluster number
+	mov ax, 0x0020                      	; 32 byte directory entry
+	mul word [rootDirEntries]           	; total size of directory
+	div word [bytesPerSector]        		; sectors used by directory
 	xchg ax, cx								; set cx to root dir size (in sectors)
 	mov word [dap_sectors], cx
 
@@ -64,86 +63,123 @@ read_file:
 	mov word [data_sector], ax				; set the data_sector pointer
 	add word [data_sector], cx				; and add the root dir sectors to point to the first data sector
 	mov word [dap_lba], ax					; prepare dap_lba to load the directory entries
-	mov dx, 0x7e00							; set where to load in ram
+	mov word [dap_buf_off], 0x8000
+	mov word [dap_buf_seg], 0x0000
 	call read_sectors
+	
+	mov cx, [rootDirEntries]
+	mov di, 0x8000							; base pointer of directory entries
 
-	mov cx, [rootDirEntries]				; number of tries to find 2nd boot loader image (the kernel loader)
-	mov di, 0x7e00							; base pointer of directory entries
+	xor ax, ax
+	mov es, ax
+	mov ds, ax
 
-find_file_loop:
+.find_file_loop:
 	push cx
 	mov cx, 11								; set cx to number of bytes to compare
-	mov si, word [file_name]				; compare with the image name
 	push di
+	mov si, word [file_name]
 	rep cmpsb								; compare [DS:SI], [ES:DI]
 	pop di									; restore saved flags
-	je found_file
 	pop cx									
-	cmp cx, 0								; check if it was the last entry
-	je file_not_found						; if so error and exit
+	je .file_found
 	dec cx									; decrement the counter
+	cmp cx, 0								; check if it was the last entry
+	je .file_not_found						; if so error and exit
 	add di, 0x20							; add 32 bytes to point to the next entry
-	jmp find_file_loop						; loop
+	jmp .find_file_loop						; loop
 
-found_file:
+.file_found:
 	mov dx, [di + 0x001a]					; get byte 26 for the cluster number
+	ret
+
+.file_not_found:
+	stc
+	ret
+
+
+
+
+
+load_cluster_chain:							; dx = start cluster; write all the cluster number from 0x7e00 up to 0x8000, returns cx = number of clusters
 	push dx
-	mov bp, sp
-	mov word [file_cluster_start], bp
-	
-	mov cx, word [sectorsPerFat]			; load the fat table
-	mov ax, word [reservedSectors]			; offset is reserved sectors 
-	mov word [dap_lba], ax					; point to the sector on disk
-	mov dx, 0x7e00							; set where to load in ram
-	call read_sectors
-
-load_cluster_chain:
-	mov bp, sp								; point to the last cluster on the stack
-	mov dx, word [bp]						; load the last cluster number
-	shl dx, 0x1								; multiply by two because FAT16 uses 2 bytes
-	mov di, 0x7e00							; restore di to point to the fat table
-	add di, dx								; add the last cluster number to the fat table address 
-	mov dx, word [di]						; get the new cluster number
-	push dx									; and push it on the stack
-	mov cx, 0xfff8							; check for last cluster
-	cmp cx, dx
-	jbe load_cluster_chain_done
-	jmp load_cluster_chain
-
-load_cluster_chain_done:
-	mov bp, word [file_cluster_start]		; point to the first cluster adress
-	mov dx, word [file_buff_seg]
-	mov word [dap_buf_seg], dx
-	mov dx, word [file_buff_off]			; load file from 0x0000:0x8000
-
-load_file_cluster:
-	mov ax, word [bp]						; get the first cluster number
-	push dx
-	call cluster_to_lba
+ 	mov cx, word [sectorsPerFat]			; load the fat table
+ 	mov ax, word [reservedSectors]			; offset is reserved sectors
+ 	mov word [dap_lba], ax					; point to the sector on disk
+ 	mov word [dap_buf_seg], 0x0				; set where to load in ram
+	mov word [dap_buf_off], 0x8000			; set where to load in ram
+ 	call read_sectors
 	pop dx
-	mov word [dap_lba], ax
+	
+	mov bp, 0
+.load_cluster_chain_loop:
+	mov word [0x7e00 + bp], dx				; put the cluster number in the array
+	mov ax, dx
+	shl dx, 1								; multiply by 2 cus its FAT 16 <- 2 * 8
+	mov di, 0x8000
+	add di, dx								; point to the next cluster number
+	mov dx, word [di]						; dx is not the next cluster number
+	mov bx, 0xfff8							; check for last cluster
+	add bp, 2
+	cmp bx, dx
+	jbe .load_cluster_chain_done
+	jmp .load_cluster_chain_loop
+
+.load_cluster_chain_done:
+	mov word [0x7e00 + bp], ax				; save the last cluster number
+	mov cx, bp
+	shr cx, 1
+	ret
+
+
+
+
+
+cluster_to_lba: ; ax = cluster number, returns ax = lba 
+	push cx
+	sub ax, 0x0002
+	xor cx, cx
+	mov cl, byte [sectorsPerCluster]
+	mul cx
+	add ax, WORD [data_sector]
+	pop cx
+	ret
+
+
+
+
+read_file: 							; set [file_name] to point to the filename string
+	push word [dap_buf_seg]
+	push word [dap_buf_off]
+	call find_file_start_cluster	; dx now contains the first cluster number
+	jc .read_file_not_found
+	call load_cluster_chain			; load all the cluster numbers at 0x7e00, cx contains the number of clusters
+
+	mov bp, 0 
+	pop word [dap_buf_off]
+	pop word [dap_buf_seg]
+
+.read_file_cluster:
+	mov ax, [0x7e00 + bp]			; point to the cluster number
+	call cluster_to_lba
+	mov word [dap_lba], ax 
+	push cx
 	xor cx, cx
 	mov cl, byte [sectorsPerCluster]
 	call read_sectors
-	mov ax, word [bp]
-	mov bx, 0xfff8
-	cmp bx, ax
-	jbe load_file_cluster_done
-	sub bp, 2
-	jmp load_file_cluster
-
-load_file_cluster_done:
-	clc
-	jmp word [read_file_return_addr]
+	pop cx
+	add bp, 2
+	loop .read_file_cluster
+	ret
+	
+.read_file_not_found:
+	pop ax
+	pop ax
+	stc
 	ret
 
-file_not_found:
-	ret
-
-
-
-;-----------------------------------;
-;				DATA				;
+;-----------------------------------; 
+;				DATA				; 
 ;-----------------------------------; 
 dap:
 dap_size: 					db 0x10
@@ -156,9 +192,5 @@ dap_lba:					dd 0x0
 data_sector:				dw 0x0
 
 file_name:					dw 0x0
-file_cluster_start:			dw 0x0
-file_buff_off:				dw 0x0
-file_buff_seg:				dw 0x0
-read_file_return_addr:		dw 0x0
 
 %include "16bit/bpb.asm"
