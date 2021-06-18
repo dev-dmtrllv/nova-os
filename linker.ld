@@ -6,7 +6,6 @@ SECTIONS
  
 	.text :
 	{
-		*(.text.main);
 		*(.text);
 	}
  
