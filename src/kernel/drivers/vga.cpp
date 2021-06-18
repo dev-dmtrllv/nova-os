@@ -1,30 +1,28 @@
 #include <kernel/drivers/vga.h>
 
-// const volatile char* VGA::buffer = (volatile char*);
+vga::color vga::foregroundColor = vga::color::WHITE;
+vga::color vga::backgroundColor = vga::color::BLACK;
 
-VGA::Color VGA::color = VGA::Color::WHITE;
-VGA::Color VGA::background = VGA::Color::BLACK;
+char vga::colorAttr = 0x0f;
 
-char VGA::colorAttr = 0x0f;
-
-void VGA::setColor(const VGA::Color color)
+void vga::set_color(const vga::color color)
 {
-	VGA::color = color;
-	VGA::colorAttr = static_cast<char>(VGA::color) | static_cast<char>(VGA::background) << 4;
+	vga::foregroundColor = color;
+	vga::colorAttr = static_cast<char>(vga::foregroundColor) | static_cast<char>(vga::backgroundColor) << 4;
 }
 
-void VGA::setBackground(const VGA::Color bgColor)
+void vga::set_background(const vga::color bgColor)
 {
-	VGA::background = bgColor;
-	VGA::colorAttr = static_cast<char>(VGA::color) | static_cast<char>(VGA::background) << 4;
+	vga::backgroundColor = bgColor;
+	vga::colorAttr = static_cast<char>(vga::foregroundColor) | static_cast<char>(vga::backgroundColor) << 4;
 }
 
-void VGA::write(const char* str)
+void vga::write(const char* str)
 {
 	volatile char* ptr = (volatile char*)0xb8000;
 	while(*str != 0)
     {
         *ptr++ = *str++;
-        *ptr++ = VGA::colorAttr;
+        *ptr++ = vga::colorAttr;
     }
 }

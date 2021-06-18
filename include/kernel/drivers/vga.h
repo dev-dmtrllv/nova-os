@@ -1,9 +1,9 @@
 #pragma once
 
-class VGA
+class vga
 {
 	public:
-		enum class Color
+		enum class color
 		{
 			BLACK = 0,
 			BLUE = 1,
@@ -23,15 +23,20 @@ class VGA
 			WHITE = 15
 		};
 
-		static void setColor(const Color color);
-		static void setBackground(const Color color);
+		static void set_color(const vga::color color);
+		static void set_background(const vga::color color);
 		
 		static void write(const char* str);
 
 	private:
-		// static const volatile char* buffer;
-		static Color color;
-		static Color background;
+		enum class Ports
+		{
+			INDEX = 0x03c0,
+			
+		};
+
+		static vga::color foregroundColor;
+		static vga::color backgroundColor;
 
 		static char colorAttr;
 		
