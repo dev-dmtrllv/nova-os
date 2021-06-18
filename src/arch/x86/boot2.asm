@@ -15,6 +15,10 @@ boot_start_2:
 	mov bp, ax
 	sti
 
+	MOV ax, 0x1003       						; turn blink off
+    MOV bl, 0
+    INT 0x10
+
 	mov si, msg_boot_kernel
 	call print_line
 
