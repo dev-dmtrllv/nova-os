@@ -1,18 +1,17 @@
 #include <kernel/drivers/vga.h>
+#include <kernel/io.h>
 
 // set this method at the beginning of the img
 extern "C" void kmain() __attribute__((section(".text.kmain")));
 
 extern "C" void kmain()
 {
-	volatile char* ptr = (volatile char*)0xb8000;
-	ptr += 160;
-	*ptr = 'X';
+	vga::clear(vga::color::BLACK);
+	vga::set_color(vga::color::LIGHT_GREEN);
+	vga::set_background(vga::color::BLACK);
 
-	vga::set_color(vga::color::GREEN);
-	vga::set_background(vga::color::YELLOW);
-
-	vga::write("Hello, World!");
+	vga::write("Kernel booted in 32bit\n");
+	vga::write("Initializing kernel drivers...\n");
 
 	__asm__("hlt");
 }

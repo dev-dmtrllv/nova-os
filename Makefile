@@ -17,6 +17,8 @@ DUMP_FILES := $(patsubst %.mem, %.dump, $(MEM_FILES))
 KERNEL_SRC := $(shell find src/kernel -name '*.cpp')
 KERNEL_OBJ := $(patsubst src/kernel%, out/$(ARCH)/kernel%, $(patsubst %.cpp, %.o, $(KERNEL_SRC)))
 
+# INCLUDES := $(shell find include -name '*.h')
+
 test:
 	echo $(KERNEL_SRC)
 	echo $(KERNEL_OBJ)
