@@ -10,8 +10,5 @@ extern "C" void kmain()
 	vga::set_color(vga::color::LIGHT_GREEN);
 	vga::set_background(vga::color::BLACK);
 
-	vga::write("Kernel booted in 32bit\n");
-	vga::write("Initializing kernel drivers...\n");
-
-	__asm__("hlt");
+	vga::write("Kernel booted in 32bit. Checking for 64bit support...\n");
 }

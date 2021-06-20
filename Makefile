@@ -8,12 +8,12 @@ BOOT_BIN_NAME = NOVALDR.BIN
 BOOT_BIN = boot.bin
 BOOT2_BIN = boot2.bin
 
-BOOT_STAGES := $(wildcard src/arch/$(BOOT_ARCH)/*asm)
-BOOT_BINARIES := $(patsubst src/arch/$(BOOT_ARCH)%, out/$(BOOT_ARCH)%, $(patsubst %.asm, %.bin, $(BOOT_STAGES)))
+BOOT_STAGES := $(wildcard src/arch/$(BOOT_ARCH)/boot/*asm)
+BOOT_BINARIES := $(patsubst src/arch/$(BOOT_ARCH)/boot%, out/$(BOOT_ARCH)%, $(patsubst %.asm, %.bin, $(BOOT_STAGES)))
 
 BOOT_IMG = out/$(BOOT_ARCH)/boot.img
 
-BOOT_INCLUDES := $(wildcard src/arch/$(ARCH)/16bit/*.asm)
+# BOOT_x86_INCLUDES := $(wildcard src/arch/$(ARCH)/boot/16bit/*.asm)
 MEM_FILES := $(wildcard *.mem)
 DUMP_FILES := $(patsubst %.mem, %.dump, $(MEM_FILES))
 
@@ -42,9 +42,9 @@ else ifeq ($(ARCH), arm)
 endif
 
 # create bootloader for x86 and x86_64
-out/$(BOOT_ARCH)/%.bin: src/arch/$(BOOT_ARCH)/%.asm
+out/$(BOOT_ARCH)/%.bin: src/arch/$(BOOT_ARCH)/boot/%.asm
 	@mkdir -p $(@D)
-	nasm -f bin $^ -o $@ -i src/arch/$(BOOT_ARCH)
+	nasm -f bin $^ -o $@ -i src/arch/$(BOOT_ARCH)/boot
 
 
 out/$(ARCH)/kernel/%.o: src/kernel/%.cpp
