@@ -1,12 +1,13 @@
-ENTRY(kmain)
+ENTRY(kinit)
 OUTPUT_FORMAT("binary")
 SECTIONS
 {
-	. = 0x10000;
+	. = 0x2000;
  
 	.text :
 	{
-		*(.text.kmain);
+		*(.text.kinit);
+		*(.text.asm);
 		*(.text);
 	}
  

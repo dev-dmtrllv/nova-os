@@ -52,7 +52,7 @@ boot_resume:
 	mov word [dap_buf_off], 0x1000
 	call read_file
 	jc err_read_file
-	jmp 0x1000
+	jmp 0x0000:0x1000
 
 
 err_read_file:

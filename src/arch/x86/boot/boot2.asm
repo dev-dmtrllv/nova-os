@@ -1,7 +1,7 @@
 [bits 16]
 [org 0x1000]
 
-%macro print_fc 2
+%macro print_err_fc 2
 %1:
 	mov si, %2
 	call print_line
@@ -15,21 +15,26 @@ boot_start_2:
 	mov bp, ax
 	sti
 
-	MOV ax, 0x1003       						; turn blink off
-    MOV bl, 0
-    INT 0x10
+	mov ax, 0x1003       						; turn blink off
+    mov bl, 0
+    int 0x10
 
 	mov si, msg_boot_kernel
 	call print_line
 
-	mov word [file_name], kernel_img_name		; load kernel image at 0x10000
-	mov word [dap_buf_off], 0x0
-	mov word [dap_buf_seg], 0x1000
-	
+	mov word [file_name], kernel_ldr_img_name	; load kernel loader image at 0x1000
+	mov word [dap_buf_off], 0x2000
+	mov word [dap_buf_seg], 0x0
+	call read_file
+	jc err_kernel_loader_missing
+
+	mov word [file_name], kernel_img_name		; load kernel image at 0x2000
+	mov word [dap_buf_off], 0x3000
+	mov word [dap_buf_seg], 0x0
 	call read_file
 	jc err_kernel_missing
 
-
+	
 	call check_a20								; check the a20 and enable
 	cmp ax, 1
 	je a20_enabled
@@ -70,8 +75,8 @@ code_desc:
 	mov [es:di + 6], byte 0xcf					; flags and limit 
 	mov [es:di + 7], byte 0x0					; base
 
-	lgdt [gdt]
-	lidt [idt]
+	lgdt [_gdt]
+	lidt [_idt]
 
 
 	mov	eax, cr0								; set cr0 PE-bit to enable 32bit
@@ -89,19 +94,18 @@ queue_cleared:
 	mov fs, ax
 	mov gs, ax
 	mov ss, ax
-	mov esp, 0xffff  							; Set stack to grown downwards from 0x10000
+	mov esp, 0x0fff  							; Set stack to grown downwards from 0x10000
 
 	db 0x66
   	db 0xEA
-  	dd 0x10000            						; kernel offset
-  	dw 0x0008             						; desciptor selector
-
-	jmp halt
+  	dd 0x2000									; kernel offset
+  	dw 0x8										; desciptor selector
 
 
 ; err reporing routines
-print_fc 	err_kernel_missing, 	msg_kernel_not_found
-print_fc 	err_a20, 				msg_a20_err
+print_err_fc 	err_kernel_missing, 		msg_kernel_not_found
+print_err_fc 	err_a20, 					msg_a20_err
+print_err_fc 	err_kernel_loader_missing,	msg_kernel_ldr_not_found
 
 %include "16bit/common.asm"
 %include "16bit/screen.asm"
@@ -110,19 +114,21 @@ print_fc 	err_a20, 				msg_a20_err
 %include "16bit/a20.asm"
 
 ; data
-msg_boot_kernel			db "Loading kernel...", 0
-msg_kernel_not_found	db "Kernel image not found!", 0
-msg_a20_enabled			db "A20 enabled!", 0
-msg_a20_err				db "A20 could not be enabled!", 0
-msg_setup				db "Setting up the GDT & IDT...", 0
+msg_boot_kernel				db "Loading kernel...", 0
+msg_kernel_not_found		db "Kernel image not found!", 0
+msg_a20_enabled				db "A20 enabled!", 0
+msg_a20_err					db "A20 could not be enabled!", 0
+msg_setup					db "Setting up the GDT & empty IDT...", 0
+msg_kernel_ldr_not_found	db "Could not find kernel loader!", 0
 
-kernel_img_name			db "KERNEL  IMG", 0
+kernel_ldr_img_name			db "KINIT   IMG", 0
+kernel_img_name				db "KERNEL  IMG", 0
 
 
-gdt:
+_gdt:
 	dw 24
 	dd 0x800
 
-idt:
+_idt:
 	dw 2048
 	dd 0
