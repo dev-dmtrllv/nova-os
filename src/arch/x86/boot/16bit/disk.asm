@@ -55,7 +55,7 @@ find_file_start_cluster:					; set word [file_name] to point to file name; retur
 	mul word [rootDirEntries]           	; total size of directory
 	div word [bytesPerSector]        		; sectors used by directory
 	xchg ax, cx								; set cx to root dir size (in sectors)
-	mov word [dap_sectors], cx
+	; mov word [dap_sectors], cx
 
 	mov al, byte [numberOfFats]				; calculate the directory table offset
 	mul word [sectorsPerFat]				; fat tables * sectors per fat
@@ -65,6 +65,7 @@ find_file_start_cluster:					; set word [file_name] to point to file name; retur
 	mov word [dap_lba], ax					; prepare dap_lba to load the directory entries
 	mov word [dap_buf_off], 0x8000
 	mov word [dap_buf_seg], 0x0000
+
 	call read_sectors
 	
 	mov cx, [rootDirEntries]
