@@ -1,4 +1,4 @@
-section .text.asm
+section .text
 
 [bits 32]
 

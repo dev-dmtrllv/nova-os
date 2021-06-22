@@ -43,6 +43,31 @@ void *memcpy(void *dst, const void *src, size_t len)
 	return dst;
 }
 
+void *memset(void *dst, int value, size_t num)
+{
+	if ((uintptr_t)dst % sizeof(long) == 0 && num % sizeof(long) == 0)
+	{
+
+		long *d = (long *)dst;
+
+		for (size_t i = 0; i < num / sizeof(long); i++)
+		{
+			d[i] = value;
+		}
+	}
+	else
+	{
+		char *d = (char *)dst;
+		
+		for (size_t  i = 0; i < num; i++)
+		{
+			d[i] = value;
+		}
+	}
+	
+	return dst;
+}
+
 template <typename T>
 void swap(T &t1, T &t2)
 {

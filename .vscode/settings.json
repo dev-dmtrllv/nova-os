@@ -1,8 +1,5 @@
 {
 	"C_Cpp.default.defines": [
 		"x86"
-	],
-	"files.associations": {
-		"*.asm": "platformio-debug.asm"
-	}
+	]
 }
