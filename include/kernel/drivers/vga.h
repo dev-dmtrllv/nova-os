@@ -31,6 +31,8 @@ public:
 		GRAPHICS
 	};
 
+	static void copy_row(uint32_t from, uint32_t to);
+
 	static void set_color(const vga::color color);
 	static void set_background(const vga::color color);
 

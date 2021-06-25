@@ -1,11 +1,14 @@
 #include <kernel/drivers/vga.h>
 #include <kernel/io.h>
+#include <lib/string.h>
 
 #define VGA_TXT_WIDTH 80
 #define VGA_TXT_HEIGHT 25
 
 vga::color vga::foreground_color = vga::color::WHITE;
 vga::color vga::background_color = vga::color::BLACK;
+
+unsigned char vga_buffer[VGA_TXT_WIDTH * 2];
 
 char vga::colorAttr = 0x0f;
 
@@ -37,11 +40,30 @@ void vga::write(const char *str)
 		else if (*str == '\t')
 		{
 			str++;
+
+			uint16_t lp = offset / VGA_TXT_WIDTH;
+			uint16_t np = offset + 4 / VGA_TXT_WIDTH;
+
+			if (lp != np) // skip to new line
+			{
+				ptr++;
+				offset = ((offset / VGA_TXT_WIDTH) + 1) * VGA_TXT_WIDTH;
+				break;
+			}
+
 			for (uint8_t i = 0; i < 4; i++)
 			{
 				offset++;
 				*ptr++ = ' ';
 				*ptr++ = vga::colorAttr;
+
+				if (offset >= (VGA_TXT_WIDTH * VGA_TXT_HEIGHT))
+				{
+					for (size_t i = 0; i < VGA_TXT_HEIGHT; i++)
+						vga::copy_row(i + 1, i);
+					offset = (VGA_TXT_WIDTH * (VGA_TXT_HEIGHT - 1));
+					ptr = (volatile char *)0xb8000 + (VGA_TXT_WIDTH * (VGA_TXT_HEIGHT - 1) * 2);
+				}
 			}
 		}
 		else
@@ -50,9 +72,23 @@ void vga::write(const char *str)
 			*ptr++ = *str++;
 			*ptr++ = vga::colorAttr;
 		}
+
+		if (offset >= (VGA_TXT_WIDTH * VGA_TXT_HEIGHT))
+		{
+			for (size_t i = 0; i < VGA_TXT_HEIGHT; i++)
+				vga::copy_row(i + 1, i);
+			offset = (VGA_TXT_WIDTH * (VGA_TXT_HEIGHT - 1));
+			ptr = (volatile char *)0xb8000 + (VGA_TXT_WIDTH * (VGA_TXT_HEIGHT - 1) * 2);
+		}
 	}
 
 	set_cursor_offset(offset);
+}
+
+void vga::copy_row(uint32_t from, uint32_t to)
+{
+	memcpy(vga_buffer, (void *)(0xb8000) + (from * VGA_TXT_WIDTH * 2), VGA_TXT_WIDTH * 2);
+	memcpy((void *)(0xb8000) + (to * VGA_TXT_WIDTH * 2), vga_buffer, VGA_TXT_WIDTH * 2);
 }
 
 void vga::clear()
