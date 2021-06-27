@@ -22,25 +22,29 @@ boot_start_2:
 	mov si, msg_boot_kernel
 	call print_line
 
-	mov word [file_name], kernel_ldr_img_name	; load kernel loader image at 0x1000
+	mov word [file_name], kernel_ldr_img_name	; load kernel init image at 0x2000
 	mov word [dap_buf_off], 0x2000
 	mov word [dap_buf_seg], 0x0
 	call read_file
 	jc err_kernel_loader_missing
 
-	mov word [file_name], kernel_img_name		; load kernel image at 0x2000
+	mov word [file_name], kernel_img_name		; load kernel image at 0x3000
 	mov word [dap_buf_off], 0x3000
 	mov word [dap_buf_seg], 0x0
 	call read_file
 	jc err_kernel_missing
 
-	
+	pusha
+	xor ax, ax
+	mov es, ax
+	mov di, 0x1500								; load the memory map before the kernel init
+	call get_memory_map
+	popa
+
 	call check_a20								; check the a20 and enable
 	cmp ax, 1
 	je a20_enabled
 	jmp err_a20
-
-
 
 a20_enabled:
 	mov si, msg_a20_enabled
@@ -112,6 +116,7 @@ print_err_fc 	err_kernel_loader_missing,	msg_kernel_ldr_not_found
 %include "16bit/bpb.asm"
 %include "16bit/disk.asm"
 %include "16bit/a20.asm"
+%include "16bit/memory.asm"
 
 ; data
 msg_boot_kernel				db "Loading kernel...", 0
