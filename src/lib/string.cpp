@@ -5,19 +5,6 @@ void *memcpy(void *dst, const void *src, size_t len)
 {
 	size_t i;
 
-	/*
-         * memcpy does not support overlapping buffers, so always do it
-         * forwards. (Don't change this without adjusting memmove.)
-         *
-         * For speedy copying, optimize the common case where both pointers
-         * and the length are word-aligned, and copy word-at-a-time instead
-         * of byte-at-a-time. Otherwise, copy by bytes.
-         *
-         * The alignment logic below should be portable. We rely on
-         * the compiler to be reasonably intelligent about optimizing
-         * the divides and modulos out. Fortunately, it is.
-         */
-
 	if ((uintptr_t)dst % sizeof(long) == 0 && (uintptr_t)src % sizeof(long) == 0 && len % sizeof(long) == 0)
 	{
 
@@ -58,13 +45,13 @@ void *memset(void *dst, int value, size_t num)
 	else
 	{
 		char *d = (char *)dst;
-		
-		for (size_t  i = 0; i < num; i++)
+
+		for (size_t i = 0; i < num; i++)
 		{
 			d[i] = value;
 		}
 	}
-	
+
 	return dst;
 }
 
@@ -88,12 +75,11 @@ void reverse(char str[], int length)
 	}
 }
 
-char *itoa(int num, char *str, int base)
+char *itoa(int32_t num, char *str, int base)
 {
 	int i = 0;
 	bool isNegative = false;
 
-	/* Handle 0 explicitely, otherwise empty string is printed for 0 */
 	if (num == 0)
 	{
 		if (base == 16)
@@ -106,15 +92,12 @@ char *itoa(int num, char *str, int base)
 		return str;
 	}
 
-	// In standard itoa(), negative numbers are handled only with
-	// base 10. Otherwise numbers are considered unsigned.
 	if (num < 0 && base == 10)
 	{
 		isNegative = true;
 		num = -num;
 	}
 
-	// Process individual digits
 	while (num != 0)
 	{
 		int rem = num % base;
@@ -128,14 +111,138 @@ char *itoa(int num, char *str, int base)
 		str[i++] = '0';
 	}
 
-	// If number is negative, append '-'
 	if (isNegative)
 		str[i++] = '-';
 
-	str[i] = '\0'; // Append string terminator
+	str[i] = '\0';
 
-	// Reverse the string
 	reverse(str, i);
 
 	return str;
+}
+
+char *ltoa(int64_t num, char *str, int base)
+{
+	int i = 0;
+	bool isNegative = false;
+
+	if (num == 0)
+	{
+		if (base == 16)
+		{
+			str[i++] = '0';
+			str[i++] = 'x';
+		}
+		str[i++] = '0';
+		str[i] = '\0';
+		return str;
+	}
+
+	if (num < 0 && base == 10)
+	{
+		isNegative = true;
+		num = -num;
+	}
+
+	while (num != 0)
+	{
+		int rem = num % base;
+		str[i++] = (rem > 9) ? (rem - 10) + 'a' : rem + '0';
+		num = num / base;
+	}
+
+	if (base == 16)
+	{
+		str[i++] = 'x';
+		str[i++] = '0';
+	}
+
+	if (isNegative)
+		str[i++] = '-';
+
+	str[i] = '\0';
+
+	reverse(str, i);
+
+	return str;
+}
+
+char *utoa(unsigned int num, char *str, int base)
+{
+	int i = 0;
+	
+	if (num == 0)
+	{
+		if (base == 16)
+		{
+			str[i++] = '0';
+			str[i++] = 'x';
+		}
+		str[i++] = '0';
+		str[i] = '\0';
+		return str;
+	}
+
+	while (num != 0)
+	{
+		int rem = num % base;
+		str[i++] = (rem > 9) ? (rem - 10) + 'a' : rem + '0';
+		num = num / base;
+	}
+
+	if (base == 16)
+	{
+		str[i++] = 'x';
+		str[i++] = '0';
+	}
+
+	str[i] = '\0';
+
+	reverse(str, i);
+
+	return str;
+}
+
+char *ltoa(uint64_t num, char *str, int base)
+{
+	int i = 0;
+	
+	if (num == 0)
+	{
+		if (base == 16)
+		{
+			str[i++] = '0';
+			str[i++] = 'x';
+		}
+		str[i++] = '0';
+		str[i] = '\0';
+		return str;
+	}
+
+	while (num != 0)
+	{
+		int rem = num % base;
+		str[i++] = (rem > 9) ? (rem - 10) + 'a' : rem + '0';
+		num = num / base;
+	}
+
+	if (base == 16)
+	{
+		str[i++] = 'x';
+		str[i++] = '0';
+	}
+
+	str[i] = '\0';
+
+	reverse(str, i);
+
+	return str;
+}
+
+size_t strlen(char* str)
+{
+	size_t i = 0;
+	while(str[i] != '\0')
+		i++;
+	return i;
 }
