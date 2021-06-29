@@ -42,27 +42,30 @@ void vga::write(const char *str)
 			str++;
 
 			uint16_t lp = offset / VGA_TXT_WIDTH;
-			uint16_t np = offset + 4 / VGA_TXT_WIDTH;
+
+			uint16_t np = (offset + (4 - (offset % 4))) / VGA_TXT_WIDTH;
 
 			if (lp != np) // skip to new line
 			{
 				ptr++;
 				offset = ((offset / VGA_TXT_WIDTH) + 1) * VGA_TXT_WIDTH;
-				break;
 			}
-
-			for (uint8_t i = 0; i < 4; i++)
+			else
 			{
-				offset++;
-				*ptr++ = ' ';
-				*ptr++ = vga::colorAttr;
-
-				if (offset >= (VGA_TXT_WIDTH * VGA_TXT_HEIGHT))
+				size_t l = (offset % 4) == 0 ? 4 : (offset % 4);
+				for (uint8_t i = 0; i < 4; i++)
 				{
-					for (size_t i = 0; i < VGA_TXT_HEIGHT; i++)
-						vga::copy_row(i + 1, i);
-					offset = (VGA_TXT_WIDTH * (VGA_TXT_HEIGHT - 1));
-					ptr = (volatile char *)0xb8000 + (VGA_TXT_WIDTH * (VGA_TXT_HEIGHT - 1) * 2);
+					offset++;
+					*ptr++ = ' ';
+					*ptr++ = vga::colorAttr;
+
+					if (offset >= (VGA_TXT_WIDTH * VGA_TXT_HEIGHT))
+					{
+						for (size_t i = 0; i < VGA_TXT_HEIGHT; i++)
+							vga::copy_row(i + 1, i);
+						offset = (VGA_TXT_WIDTH * (VGA_TXT_HEIGHT - 1));
+						ptr = (volatile char *)0xb8000 + (VGA_TXT_WIDTH * (VGA_TXT_HEIGHT - 1) * 2);
+					}
 				}
 			}
 		}
@@ -87,8 +90,8 @@ void vga::write(const char *str)
 
 void vga::copy_row(uint32_t from, uint32_t to)
 {
-	memcpy(vga_buffer, (void *)(0xb8000) + (from * VGA_TXT_WIDTH * 2), VGA_TXT_WIDTH * 2);
-	memcpy((void *)(0xb8000) + (to * VGA_TXT_WIDTH * 2), vga_buffer, VGA_TXT_WIDTH * 2);
+	memcpy(vga_buffer, reinterpret_cast<void *>(0xb8000 + (from * VGA_TXT_WIDTH * 2)), VGA_TXT_WIDTH * 2);
+	memcpy(reinterpret_cast<void *>(0xb8000 + (to * VGA_TXT_WIDTH * 2)), vga_buffer, VGA_TXT_WIDTH * 2);
 }
 
 void vga::clear()
