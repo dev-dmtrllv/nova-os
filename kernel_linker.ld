@@ -2,7 +2,7 @@ ENTRY(kmain)
 OUTPUT_FORMAT("binary")
 SECTIONS
 {
-	. = 0x3000;
+	. = 0x4000;
  
 	.text : ALIGN(4K)
 	{

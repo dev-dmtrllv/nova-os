@@ -31,8 +31,8 @@ boot_start_2:
 	call read_file
 	jc err_kernel_loader_missing
 
-	mov word [file_name], kernel_img_name		; load kernel image at 0x3000
-	mov word [dap_buf_off], 0x3000
+	mov word [file_name], kernel_img_name		; load kernel image at 0x4000
+	mov word [dap_buf_off], 0x4000
 	mov word [dap_buf_seg], 0x0
 	call read_file
 	jc err_kernel_missing

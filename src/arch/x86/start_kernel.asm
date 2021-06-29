@@ -6,7 +6,8 @@ global start_kernel32
 global start_kernel64
 
 start_kernel32:
-	jmp 0x8:0x3000
+	mov esp, 0x2ffa
+	jmp 0x8:0x4000
     
 start_kernel64:
 	cli				; we are not set up to enter the 64bit world. 
