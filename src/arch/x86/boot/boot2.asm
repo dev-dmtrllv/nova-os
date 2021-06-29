@@ -15,6 +15,9 @@ boot_start_2:
 	mov bp, ax
 	sti
 
+	mov ax, 0x0002								; set video mode (clears the screen)
+	int 0x10
+
 	mov ax, 0x1003       						; turn blink off
     mov bl, 0
     int 0x10
@@ -39,6 +42,13 @@ boot_start_2:
 	mov es, ax
 	mov di, 0x1500								; load the memory map before the kernel init
 	call get_memory_map
+	xor bp, bp
+	mov [es:di + 2], word bp					; Write end of chain
+	mov [es:di + 2], word bp
+	mov [es:di + 2], word bp
+	mov [es:di + 2], word bp
+	mov [es:di + 2], word bp
+	mov [es:di + 2], word bp
 	popa
 
 	call check_a20								; check the a20 and enable
@@ -98,7 +108,7 @@ queue_cleared:
 	mov fs, ax
 	mov gs, ax
 	mov ss, ax
-	mov esp, 0x0fff  							; Set stack to grown downwards from 0x10000
+	mov esp, 0x1500  							; Set stack to grown downwards from 0x1500 (where the bios_mem_info list starts) 
 
 	db 0x66
   	db 0xEA
@@ -109,7 +119,7 @@ queue_cleared:
 ; err reporing routines
 print_err_fc 	err_kernel_missing, 		msg_kernel_not_found
 print_err_fc 	err_a20, 					msg_a20_err
-print_err_fc 	err_kernel_loader_missing,	msg_kernel_ldr_not_found
+print_err_fc 	err_kernel_loader_missing,	msg_kinit_not_found
 
 %include "16bit/common.asm"
 %include "16bit/screen.asm"
@@ -119,12 +129,12 @@ print_err_fc 	err_kernel_loader_missing,	msg_kernel_ldr_not_found
 %include "16bit/memory.asm"
 
 ; data
-msg_boot_kernel				db "Loading kernel...", 0
+msg_boot_kernel				db "Loading kernel init...", 0
 msg_kernel_not_found		db "Kernel image not found!", 0
+msg_kinit_not_found			db "kinit image not found!", 0
 msg_a20_enabled				db "A20 enabled!", 0
 msg_a20_err					db "A20 could not be enabled!", 0
 msg_setup					db "Setting up the GDT & empty IDT...", 0
-msg_kernel_ldr_not_found	db "Could not find kernel loader!", 0
 
 kernel_ldr_img_name			db "KINIT   IMG", 0
 kernel_img_name				db "KERNEL  IMG", 0
