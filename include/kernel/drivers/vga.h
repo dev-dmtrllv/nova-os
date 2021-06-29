@@ -37,6 +37,23 @@ public:
 	static void set_background(const vga::color color);
 
 	static void write(const char *str);
+	static void write_line(const char *str);
+
+	template <typename ...T>
+	static void write(const char *str, T&... args)
+	{
+		vga::write(str);
+		vga::write(args...);
+	}
+
+	template <typename ...T>
+	static void write_line(const char *str, T&... args)
+	{
+		vga::write(str);
+		vga::write(args...);
+		vga::write("\n");
+	}
+
 	static void clear();
 	static void clear(const vga::color color);
 	// static void set_mode(vga::mode mode);

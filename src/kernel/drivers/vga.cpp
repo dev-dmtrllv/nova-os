@@ -88,6 +88,12 @@ void vga::write(const char *str)
 	set_cursor_offset(offset);
 }
 
+
+void vga::write_line(const char *str)
+{
+	vga::write(str, "\n");
+}
+
 void vga::copy_row(uint32_t from, uint32_t to)
 {
 	memcpy(vga_buffer, reinterpret_cast<void *>(0xb8000 + (from * VGA_TXT_WIDTH * 2)), VGA_TXT_WIDTH * 2);
