@@ -9,16 +9,20 @@ extern "C" void start_kernel64();
 
 extern "C" void kinit()
 {
-	vga::set_background(vga::color::BLACK);
-	vga::set_color(vga::color::LIGHT_GRAY);
+	vga::write("hi");
+	__asm__ volatile("cli; hlt;");
+	
+	// vga::set_background(vga::color::BLACK);
+	// vga::set_color(vga::color::LIGHT_GRAY);
+// 
+	// kmm::init();
 
-	kmm::init();
 
-#ifdef KERNEL_BOOT_x86_64
-	vga::write("Preparing for the 64bit kernel...\n");
-	start_kernel64();
-#else
-	start_kernel32();
-#endif
+// #ifdef KERNEL_BOOT_x86_64
+	// vga::write("Preparing for the 64bit kernel...\n");
+	// start_kernel64();
+// #else
+	// start_kernel32();
+// #endif
 
 }

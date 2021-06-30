@@ -4,26 +4,26 @@ SECTIONS
 {
 	. = 0x2000;
  
-	.text :
+	.text : ALIGN(4k)
 	{
 		*(.text.kinit);
 		code = .; _code = .; __code = .;
 		*(.text);
 	}
  
-	.rodata :
+	.rodata : ALIGN(4k)
 	{
 		rodata = .; _rodata = .; __rodata = .;
 		*(.rodata);
 	}
  
-	.data :
+	.data : ALIGN(4k)
 	{
 		data = .; _data = .; __data = .;
 		*(.data);
 	}
  
-	.bss :
+	.bss : ALIGN(4k)
 	{
 		bss = .; _bss = .; __bss = .;
 		*(COMMON);

@@ -1,7 +1,11 @@
 ARCH = x86
 
-CFLAGS = -ffreestanding -O -Wall -Wextra -fno-exceptions -fno-rtti -fstrength-reduce -fomit-frame-pointer -finline-functions -nostdinc -fno-builtin -Iinclude
+OPTIMIZATION = -O2
+
+# CFLAGS = -ffreestanding -O2 -Wall -Wextra -fno-exceptions -fno-rtti -fstrength-reduce -fomit-frame-pointer -finline-functions -nostdinc -fno-builtin -Iinclude
+CFLAGS = -ffreestanding $(OPTIMIZATION) -Wall -Wextra -fno-exceptions -fno-rtti -fstrength-reduce -fomit-frame-pointer -finline-functions -nostdinc -fno-builtin -Iinclude
 QEMU_FLAGS = -drive format=raw,file=$(BOOT_IMG)
+LD_FLAGS = -ffreestanding -nostdlib -lgcc -Iinclude $(OPTIMIZATION)
 
 ifeq ($(ARCH), x86)
 	GCC = i686-elf-g++
@@ -76,7 +80,6 @@ out/$(ARCH)/kinit/lib/%.o: src/lib/%.cpp
 	@mkdir -p $(@D)
 	i686-elf-g++ $(CFLAGS) -Dx86 -DKERNEL_BOOT_$(ARCH) -c $^ -o $@
 
-
 out/$(ARCH)/kernel/%.o: src/kernel/%.cpp
 	@mkdir -p $(@D)
 	$(GCC) -c $(CFLAGS) -D$(ARCH) $^ -o $@ 
@@ -93,12 +96,16 @@ run: $(BOOT_IMG)
 	$(QEMU) $(QEMU_FLAGS)
 	make xxd
 
+
+
 out/$(ARCH)/kernel.img: $(KERNEL_OBJ)
-	$(LD) -T kernel_linker.ld -ffreestanding -O2 -nostdlib -lgcc -Iinclude -D$(ARCH) $^ -o $@
+	$(LD) -T kernel_linker.ld $(LD_FLAGS) -D$(ARCH) $^ -o $@
 
 # kinit must be compiled in 32 bits!!!
 out/$(ARCH)/kinit.img: $(KINIT_OBJ)
-	i686-elf-gcc -T kinit_linker.ld -ffreestanding -O2 -nostdlib -lgcc -Iinclude -Dx86 -DKERNEL_BOOT$(ARCH) $^ -o $@ 
+	i686-elf-gcc -T kinit_linker.ld $(LD_FLAGS) -Dx86 -DKERNEL_BOOT$(ARCH) $^ -o $@ 
+
+
 
 $(BOOT_IMG): $(FILES)
 	@mkdir -p $(@D)
