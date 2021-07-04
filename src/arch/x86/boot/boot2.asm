@@ -38,7 +38,7 @@ boot2:
     mov bl, 0
     int 0x10
 
-	mov si, msg_boot_kernel
+	mov si, msg_load_kernel
 	call print_line
 
 	pusha
@@ -52,6 +52,9 @@ boot2:
 	pop ds
 	popa
     jc err_kernel_missing
+
+	mov si, msg_load_kinit
+	call print_line
 
 	pusha
 	push ds
@@ -146,7 +149,8 @@ print_err_fc 	err_a20, 					msg_a20_err
 %include "16bit/a20.asm"
 
 
-msg_boot_kernel				db "Loading kernel imaged", 0
+msg_load_kinit				db "Loading kinit image", 0
+msg_load_kernel				db "Loading kernel image", 0
 msg_a20_enabled				db "A20 enabled", 0
 msg_kernel_not_found		db "Could not find kernel!", 0
 msg_kinit_not_found			db "Could not find kinit!", 0
