@@ -1,4 +1,5 @@
 #include <arch/x86/kinit/kmm.h>
+#include <arch/x86/boot/bios_info.h>
 #include <kernel/drivers/vga.h>
 
 #include <lib/string.h>
@@ -58,7 +59,8 @@ namespace kmm
 
 void kmm::init()
 {
-	// size_t max_bios_mem_info_size = (0x2000 - 0x800) / sizeof(bios_mem_info_t);
+	boot::bios_info* bios_info = reinterpret_cast<boot::bios_info*>(0x3000);
+	
 	size_t size = 0;
 
 	uint64_t min_ram = 0xffffffffffffffff;
@@ -67,12 +69,12 @@ void kmm::init()
 	char buf1[16];
 	char buf2[16];
 
-	bios_mem_info_t *bios_mem_info_ptr = reinterpret_cast<bios_mem_info_t *>(0x900);
+	bios_mem_info_t *bios_mem_info_ptr = reinterpret_cast<bios_mem_info_t *>(bios_info->mem_list_addr);
 
 	vga::write("Memory map:\n");
 	vga::write("from:   \t\tto: \t\t\tsize:\n");
 
-	while (size < 10)
+	while (size < bios_info->mem_list_size)
 	{
 		mem_info_t *info = &memory_info[size];
 		info->base = ((static_cast<uint64_t>(bios_mem_info_ptr[size].base_h) << 32) | bios_mem_info_ptr[size].base_l);
@@ -112,6 +114,8 @@ void kmm::init()
 
 	size_t total_size = size;
 
+
+	vga::write_line("\nchecking for gaps");
 	for (size_t i = 0; i < size - 1; i++)
 	{
 
@@ -158,16 +162,18 @@ void kmm::init()
 			info->size = gap;
 			info->base = gap_dir == -1 ? b - gap : t;
 			info->reserved = true;
+
+			utoa(info->base, buf1, 16);
+			utoa(info->size, buf2, 16);
+			vga::write_line("found gap: ", buf1, "\t\tsize:", buf2);
 		}
 	}
 
+	vga::write_line("");
 
 	utoa(min_ram, buf1, 16);
 	utoa(max_ram, buf2, 16);
 	vga::write_line("available ram: ", buf1, " - ", buf2);
-
-	utoa(total_size, buf1, 10);
-	vga::write_line("mem list size: ", buf1);
 
 	uint64_t ram_size = max_ram - min_ram;
 	uint32_t frames = align(ram_size, FRAME_BLOCK_SIZE) / FRAME_BLOCK_SIZE;
@@ -181,14 +187,16 @@ void kmm::init()
 	vga::write_line("bitmap address: ", buf1, "\t\tsize: ", buf2);
 
 	memset(bitmap, 0, integers_size);
-	
-	for (size_t i = 0; i < size; i++)
+
+	vga::write_line("\ninitializing bitmaps");
+
+	for (size_t i = 0; i < total_size; i++)
 	{
 		if (memory_info[i].reserved)
 		{
 			ltoa(memory_info[i].base, buf1, 16);
 			utoa(memory_info[i].size, buf2, 16);
-			vga::write_line("mem address: ", buf1, "\t\tsize: ", buf2);
+			vga::write_line("set mem addresses reserved at: ", buf1, "\tsize: [", buf2, "]");
 			uint32_t base_frame_index = align(memory_info[i].base, FRAME_BLOCK_SIZE) / FRAME_BLOCK_SIZE;
 			uint32_t limit_frame_index = align(memory_info[i].base + memory_info[i].size, FRAME_BLOCK_SIZE) / FRAME_BLOCK_SIZE;
 			for (; base_frame_index <= limit_frame_index; base_frame_index++)

@@ -1,5 +1,6 @@
 #include <kernel/drivers/vga.h>
 #include <arch/x86/kinit/kmm.h>
+#include <lib/string.h>
 
 extern "C" void start() __attribute__((section(".text.kmain")));
 

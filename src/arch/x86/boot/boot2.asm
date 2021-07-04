@@ -7,6 +7,8 @@
 %define KERNEL_SEG 0x3000
 %define LIN_KERNEL_ADDR 0x30000
 
+%define BIOS_KERNEL_INFO_AREA 0x3000
+
 %define BOOT2 1
 
 %macro print_err_fc 2
@@ -71,15 +73,11 @@ boot2:
     pusha
 	xor ax, ax
 	mov es, ax
-	mov di, 0x900								; load the memory map before the kernel init
+	mov di, memory_array						; load the memory map before the kernel init
 	call get_memory_map
-	xor bp, bp
-	mov [es:di + 2], word bp					; Write end of chain
-	mov [es:di + 2], word bp
-	mov [es:di + 2], word bp
-	mov [es:di + 2], word bp
-	mov [es:di + 2], word bp
-	mov [es:di + 2], word bp
+	mov di, BIOS_KERNEL_INFO_AREA				; store numbers of memory info list items
+	mov [es:di], dword bp
+	mov [es:di + 2], dword memory_array			; store the pointer to the memory info list
 	popa
 
     call check_a20								; check the a20 and enable
@@ -183,3 +181,6 @@ queue_cleared:
     mov ebx, [eax]
 	
     jmp dword 0x8:LIN_KINIT_ADDR
+
+memory_array:
+	times 64 dd 0
