@@ -66,11 +66,9 @@ void kmm::init()
 
 	char buf1[16];
 	char buf2[16];
-	// char buf3[16];
 
 	bios_mem_info_t *bios_mem_info_ptr = reinterpret_cast<bios_mem_info_t *>(0x900);
 
-	vga::write("\n");
 	vga::write("Memory map:\n");
 	vga::write("from:   \t\tto: \t\t\tsize:\n");
 

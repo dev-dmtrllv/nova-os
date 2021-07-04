@@ -65,6 +65,20 @@ void vga::init(vga::color foreground, vga::color background)
 	vga::set_color(foreground);
 }
 
+void vga::write(const char* str, vga::color fg,	vga::color bg)
+{
+	vga::color_attr = static_cast<char>(fg) | static_cast<char>(bg) << 4;
+	vga::write(str);
+	vga::color_attr = static_cast<char>(vga::foreground_color) | static_cast<char>(vga::background_color) << 4;
+}
+
+void vga::write_line(const char* str, vga::color fg, vga::color bg)
+{
+	vga::color_attr = static_cast<char>(fg) | static_cast<char>(bg) << 4;
+	vga::write_line(str);
+	vga::color_attr = static_cast<char>(vga::foreground_color) | static_cast<char>(vga::background_color) << 4;
+}
+
 void vga::write(const char *str)
 {
 	uint16_t offset = get_cursor_offset();

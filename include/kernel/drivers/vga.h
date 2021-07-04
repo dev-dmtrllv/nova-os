@@ -27,12 +27,15 @@ namespace vga
 	void init();
 	void init(vga::color foreground, vga::color background);
 
-	void write(const char *str);
 
 	void set_color(const vga::color color);
 	void set_background(const vga::color color);
 
+	void write(const char *str);
 	void write_line(const char *str);
+
+	void write(const char* str, vga::color fg,	vga::color bg);
+	void write_line(const char* str, vga::color fg, vga::color bg);
 
 	template <typename... T>
 	void write(const char *str, T &...args)
