@@ -6,6 +6,8 @@
 
 #define FRAME_BLOCK_SIZE 4096
 
+extern uint32_t kinit_end;
+
 namespace kmm
 {
 	namespace
@@ -31,6 +33,7 @@ namespace kmm
 		mem_info_t memory_info[32];
 
 		uint32_t *bitmap = nullptr;
+		uint32_t bitmap_size;
 
 		uint64_t align(uint64_t num, uint64_t alignment)
 		{
@@ -59,8 +62,8 @@ namespace kmm
 
 void kmm::init()
 {
-	boot::bios_info* bios_info = reinterpret_cast<boot::bios_info*>(0x3000);
-	
+	boot::bios_info *bios_info = reinterpret_cast<boot::bios_info *>(0x3000);
+
 	size_t size = 0;
 
 	uint64_t min_ram = 0xffffffffffffffff;
@@ -113,7 +116,6 @@ void kmm::init()
 	}
 
 	size_t total_size = size;
-
 
 	vga::write_line("\nchecking for memory gaps...");
 	for (size_t i = 0; i < size - 1; i++)
@@ -178,15 +180,15 @@ void kmm::init()
 	uint64_t ram_size = max_ram - min_ram;
 	uint32_t frames = align(ram_size, FRAME_BLOCK_SIZE) / FRAME_BLOCK_SIZE;
 	uint32_t integers = align(frames, 32) / 32;
-	uint32_t integers_size = integers * sizeof(uint32_t);
 
-	bitmap = reinterpret_cast<uint32_t *>(max_ram - integers_size);
+	bitmap_size = integers * sizeof(uint32_t);
+	bitmap = reinterpret_cast<uint32_t *>(max_ram - bitmap_size);
 
 	utoa((uint32_t)bitmap, buf1, 16);
-	utoa(integers_size, buf2, 16);
+	utoa(bitmap_size, buf2, 16);
 	vga::write_line("bitmap address: ", buf1, "\tsize: ", buf2);
 
-	memset(bitmap, 0, integers_size);
+	memset(bitmap, 0, bitmap_size);
 
 	vga::write_line("\ninitializing bitmaps...");
 
@@ -194,18 +196,39 @@ void kmm::init()
 	{
 		if (memory_info[i].reserved)
 		{
-			ltoa(memory_info[i].base, buf1, 16);
-			utoa(memory_info[i].size, buf2, 16);
-			
-			vga::write("set reserved bitmap for: ", buf1);
-			for (size_t i = 0; i < (16 - strlen(buf1)); i++)
-				vga::write(" ");
-			vga::write_line("size: ", buf2);
+			if (memory_info[i].base < max_ram)
+			{
+				uint32_t base_frame_index = align(memory_info[i].base, FRAME_BLOCK_SIZE) / FRAME_BLOCK_SIZE;
+				uint32_t limit_frame_index = align(memory_info[i].base + memory_info[i].size, FRAME_BLOCK_SIZE) / FRAME_BLOCK_SIZE;
 
-			uint32_t base_frame_index = align(memory_info[i].base, FRAME_BLOCK_SIZE) / FRAME_BLOCK_SIZE;
-			uint32_t limit_frame_index = align(memory_info[i].base + memory_info[i].size, FRAME_BLOCK_SIZE) / FRAME_BLOCK_SIZE;
-			for (; base_frame_index <= limit_frame_index; base_frame_index++)
-				set_bitmap(base_frame_index, false);
+				utoa(memory_info[i].base, buf1, 16);
+				utoa(memory_info[i].base + memory_info[i].size, buf2, 16);
+
+				vga::write("set reserved bitmap for: ", buf1);
+				for (size_t i = 0; i < (16 - strlen(buf1)); i++)
+					vga::write(" ");
+				vga::write_line("limit: ", buf2);
+
+				for (; base_frame_index <= limit_frame_index; base_frame_index++)
+					set_bitmap(base_frame_index, false);
+			}
 		}
 	}
+
+	// set the first 4 frames reserved (this is for the IVT, GDT, BIOS_KERNEL_INFO_AREA)
+	for (size_t i = 0; i < 4; i++)
+		set_bitmap(i, false);
+
+	// set all the kinit frames reserved
+	uint32_t kinit_start = align(0x10000, FRAME_BLOCK_SIZE) / FRAME_BLOCK_SIZE;
+	const uint32_t kinit_end = align(reinterpret_cast<uint32_t>(&kinit_end), FRAME_BLOCK_SIZE) / FRAME_BLOCK_SIZE;
+	for (; kinit_start <= kinit_end; kinit_start++)
+		set_bitmap(kinit_start, false);
+}
+
+void *kmm::malloc(size_t size)
+{
+	const size_t frames = align(size, FRAME_BLOCK_SIZE) / FRAME_BLOCK_SIZE;
+	const size_t blocks = frames / 32;
+	
 }

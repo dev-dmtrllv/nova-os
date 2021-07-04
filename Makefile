@@ -2,9 +2,9 @@ ARCH = x86
 
 BOOT = grub
 
-GCC_PATH = ~/opt/cross/bin
-
 OPTIMIZATION = -O2
+
+GCC_PATH = ~/opt/cross/bin
 
 CFLAGS = -ffreestanding $(OPTIMIZATION) -Wall -Wextra -fno-exceptions -fno-rtti -fstrength-reduce -fomit-frame-pointer -finline-functions -nostdinc -fno-builtin -fno-common -Iinclude -D$(ARCH)
 QEMU_FLAGS = -drive format=raw,file=$(BOOT_IMG) -no-reboot -no-shutdown
@@ -13,11 +13,13 @@ LD_FLAGS = -fno-common -ffreestanding -nostdlib -lgcc $(OPTIMIZATION)
 LINK_OUTPUT = bin
 
 ifeq ($(ARCH), x86)
+	OBJCPY = $(GCC_PATH)/i686-elf-objcopy
 	GCC = $(GCC_PATH)/i686-elf-g++
 	LD = $(GCC_PATH)/i686-elf-g++
 	QEMU = qemu-system-i386
 	BOOT_ARCH := x86
 else ifeq ($(ARCH), x86_64)
+	OBJCPY = $(GCC_PATH)/i686-elf-objcopy
 	GCC = $(GCC_PATH)/x86_64-elf-g++
 	LD = $(GCC_PATH)/x86_64-elf-gcc
 	QEMU = qemu-system-x86_64
@@ -31,12 +33,11 @@ else ifeq ($(ARCH), arm)
 	BOOT_ARCH := arm
 endif
 
-
 BOOT_FILES := $(wildcard src/arch/$(BOOT_ARCH)/boot/16bit/*.asm)
 
 FILES = out/$(ARCH)/boot.bin out/$(ARCH)/kernel.img out/$(ARCH)/kinit.img
 
-BOOT_IMG = out/$(ARCH)/boot/boot.img
+BOOT_IMG = out/$(ARCH)/os.img
 
 MEM_FILES := $(wildcard *.mem)
 DUMP_FILES := $(patsubst %.mem, %.dump, $(MEM_FILES))
@@ -62,8 +63,8 @@ KERNEL_OBJ += $(patsubst src/kernel/drivers/%, out/$(ARCH)/kernel/drivers/%, $(p
 KERNEL_OBJ += $(patsubst src/arch/x86%, out/$(ARCH)%, $(patsubst %.asm, %.o, $(ARCH_SRC)))
 KERNEL_OBJ += $(LIB_OBJ)
 
-USB_PATH = /dev/sdb
 
+USB_PATH = /dev/sdb
 
 
 out/x86/boot/boot1.bin: src/arch/x86/boot/boot.asm src/arch/x86/boot/16bit/common.asm src/arch/x86/boot/16bit/screen.asm
@@ -76,7 +77,6 @@ out/x86/boot/boot2.bin: src/arch/x86/boot/boot2.asm $(BOOT_FILES)
 
 out/x86/boot.bin: out/x86/boot/boot1.bin out/x86/boot/boot2.bin
 	cat $^ > $@
-
 
 
 out/$(ARCH)/kinit/%.o: src/arch/$(ARCH)/kinit/%.asm
@@ -104,14 +104,16 @@ out/$(ARCH)/lib/%.o: src/lib/%.cpp
 	$(GCC) -c $(CFLAGS) -D$(ARCH) $^ -o $@ 
 
 
-
 out/$(ARCH)/kinit.bin: $(KINIT_OBJ)
-	$(LD) -Tkinit-linker.ld -o $@ $(LD_FLAGS) $(KINIT_OBJ) -lgcc
+	$(LD) -Tkinit-linker.ld -o out/$(ARCH)/kinit.elf $(LD_FLAGS) $(KINIT_OBJ) -lgcc
+	$(OBJCPY) --only-keep-debug out/$(ARCH)/kinit.elf out/$(ARCH)/kinit.sym
+	$(OBJCPY) -O binary --strip-debug out/$(ARCH)/kinit.elf $@
+
 
 out/$(ARCH)/kernel.bin: $(KERNEL_OBJ)
-	$(LD) -Tkernel-linker.ld -o $@ $(LD_FLAGS) $(KERNEL_OBJ) -lgcc
-
-
+	$(LD) -Tkernel-linker.ld -o out/$(ARCH)/kernel.elf $(LD_FLAGS) $(KERNEL_OBJ) -lgcc
+	$(OBJCPY) --only-keep-debug out/$(ARCH)/kernel.elf out/$(ARCH)/kernel.sym
+	$(OBJCPY) -O binary --strip-debug out/$(ARCH)/kernel.elf $@
 
 %.dump: %.mem
 	xxd $^ > $@
@@ -120,10 +122,9 @@ run: $(BOOT_IMG)
 	$(QEMU) $(QEMU_FLAGS)
 	make xxd
 
-test: $(KINIT_OBJ)
-	echo $^
-
-
+debug: $(BOOT_IMG)
+	gnome-terminal -- gdb
+	$(QEMU) -s -S $(QEMU_FLAGS)
 
 $(BOOT_IMG): out/$(ARCH)/boot.bin out/$(ARCH)/kinit.bin out/$(ARCH)/kernel.bin
 	@mkdir -p $(@D)

@@ -1,0 +1,49 @@
+Function "f" not defined.
+Make breakpoint pending on future shared library load? (y or [n]) [answered N; input not from terminal]
+.gdbinit:6: Error in sourced command file:
+Argument required (one or more breakpoint numbers).
+warning: No executable has been specified and target does not support
+determining executable automatically.  Try using the "file" command.
+0x0000fff0 in ?? ()
+Breakpoint 1 at 0x10000
+Continuing.
+
+Breakpoint 1, 0x00010000 in start ()
+warning: No executable has been specified and target does not support
+determining executable automatically.  Try using the "file" command.
+0x0000fff0 in ?? ()
+Breakpoint 1 at 0x10000
+
+Breakpoint 1, 0x00010000 in start ()
+Continuing.
+Cannot execute this command while the target is running.
+Use the "interrupt" command to stop the target
+and then try again.
+Remote communication error.  Target disconnected.: Broken pipe.
+warning: No executable has been specified and target does not support
+determining executable automatically.  Try using the "file" command.
+0x0000fff0 in ?? ()
+Breakpoint 1 at 0x10000
+
+Breakpoint 1, 0x00010000 in start ()
+Continuing.
+Cannot execute this command while the target is running.
+Use the "interrupt" command to stop the target
+and then try again.
+warning: No executable has been specified and target does not support
+determining executable automatically.  Try using the "file" command.
+0x0000fff0 in ?? ()
+Breakpoint 1 at 0x10000
+
+Breakpoint 1, 0x00010000 in start ()
+Continuing.
+
+Program received signal SIGQUIT, Quit.
+0x000105de in kmm::init() ()
+Continuing.
+[Inferior 1 (process 1) exited normally]
+The program is not being run.
+The program is not being run.
+The program is not being run.
+The program is not being run.
+The program is not being run.

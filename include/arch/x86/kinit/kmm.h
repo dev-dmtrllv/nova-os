@@ -5,4 +5,5 @@
 namespace kmm
 {
 	void init();
+	void * malloc(size_t size);
 };

@@ -92,7 +92,7 @@ When the computer starts the bios will look for an bootable drive. It checks the
 +-- 0x7C00 		|First boot stage
 |
 |
-+-- 0x3000 		Bios Kernel Info Area (for the kinit and kernel)
++-- 0x3000 		Bios Kernel Info Area (for the kinit and kernel) till 0x4000
 |
 |
 +-- 0x1000 		Second boot stage
