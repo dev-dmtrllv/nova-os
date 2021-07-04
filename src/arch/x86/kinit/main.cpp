@@ -13,5 +13,9 @@ extern "C" void start()
 	vga::write_line("]\n", vga::color::LIGHT_GREEN, vga::color::BLACK);
 	kmm::init();
 
+	vga::write("[", vga::color::LIGHT_GREEN, vga::color::BLACK);
+	vga::write("kinit memory manager initialized");
+	vga::write_line("]\n", vga::color::LIGHT_GREEN, vga::color::BLACK);
+
 	__asm__ volatile("cli; hlt;");
 }

@@ -224,11 +224,58 @@ void kmm::init()
 	const uint32_t kinit_end = align(reinterpret_cast<uint32_t>(&kinit_end), FRAME_BLOCK_SIZE) / FRAME_BLOCK_SIZE;
 	for (; kinit_start <= kinit_end; kinit_start++)
 		set_bitmap(kinit_start, false);
+	
+	// void* a = alloc_frames(32);
+	// vga::write_line(utoa((uint32_t)a, buf1, 16));
 }
 
-void *kmm::malloc(size_t size)
+void *kmm::alloc_frames(size_t number_of_frames)
 {
-	const size_t frames = align(size, FRAME_BLOCK_SIZE) / FRAME_BLOCK_SIZE;
-	const size_t blocks = frames / 32;
-	
+	size_t free_frames = 0;
+	uint32_t frame_index = 0;
+	uint32_t frame_bit = 0;
+
+	char buf[8];
+
+	for(size_t i = 0; i < bitmap_size; i++)
+	{
+		uint32_t n = bitmap[i];
+
+		// loop through each bit till we find a row of free frames
+		for(size_t j = 0; j < 32; j++)
+		{
+			if(((n >> j) & 1) == 0) // bit j is free
+			{
+				if(free_frames == 0)
+				{
+					frame_index = i;
+					frame_bit = j;
+
+					// vga::write(utoa(i, buf, 10) ," ");
+					// vga::write(utoa(j, buf, 10) ," -   ");
+				}
+
+				free_frames++;
+				
+				if(free_frames == number_of_frames)
+				{
+					uint32_t frame_start_index = (frame_index * 32) + frame_bit;
+					for(size_t k = 0; k < number_of_frames; k++)
+						kmm::set_bitmap(frame_start_index + k, false);
+
+					// vga::write("ended ");
+					// vga::write(utoa(i, buf, 10) ," ");
+					// vga::write(utoa(j, buf, 10) ," -   ");
+
+					return reinterpret_cast<void *>(frame_start_index * FRAME_BLOCK_SIZE);
+				}
+			}
+			else
+			{
+				free_frames = 0;
+			}
+		}
+	}
+
+	return nullptr;
 }

@@ -5,5 +5,5 @@
 namespace kmm
 {
 	void init();
-	void * malloc(size_t size);
+	void *alloc_frames(size_t number_of_frames);
 };
