@@ -115,7 +115,7 @@ void kmm::init()
 	size_t total_size = size;
 
 
-	vga::write_line("\nchecking for gaps");
+	vga::write_line("\nchecking for memory gaps...");
 	for (size_t i = 0; i < size - 1; i++)
 	{
 
@@ -165,7 +165,7 @@ void kmm::init()
 
 			utoa(info->base, buf1, 16);
 			utoa(info->size, buf2, 16);
-			vga::write_line("found gap: ", buf1, "\t\tsize:", buf2);
+			vga::write_line("found gap: ", buf1, "\tsize: ", buf2);
 		}
 	}
 
@@ -184,11 +184,11 @@ void kmm::init()
 
 	utoa((uint32_t)bitmap, buf1, 16);
 	utoa(integers_size, buf2, 16);
-	vga::write_line("bitmap address: ", buf1, "\t\tsize: ", buf2);
+	vga::write_line("bitmap address: ", buf1, "\tsize: ", buf2);
 
 	memset(bitmap, 0, integers_size);
 
-	vga::write_line("\ninitializing bitmaps");
+	vga::write_line("\ninitializing bitmaps...");
 
 	for (size_t i = 0; i < total_size; i++)
 	{
@@ -196,7 +196,12 @@ void kmm::init()
 		{
 			ltoa(memory_info[i].base, buf1, 16);
 			utoa(memory_info[i].size, buf2, 16);
-			vga::write_line("set mem addresses reserved at: ", buf1, "\tsize: [", buf2, "]");
+			
+			vga::write("set reserved bitmap for: ", buf1);
+			for (size_t i = 0; i < (16 - strlen(buf1)); i++)
+				vga::write(" ");
+			vga::write_line("size: ", buf2);
+
 			uint32_t base_frame_index = align(memory_info[i].base, FRAME_BLOCK_SIZE) / FRAME_BLOCK_SIZE;
 			uint32_t limit_frame_index = align(memory_info[i].base + memory_info[i].size, FRAME_BLOCK_SIZE) / FRAME_BLOCK_SIZE;
 			for (; base_frame_index <= limit_frame_index; base_frame_index++)
