@@ -55,10 +55,9 @@ void *memset(void *dst, int value, size_t num)
 	return dst;
 }
 
-template <typename T>
-void swap(T &t1, T &t2)
+void swap(char &t1, char &t2)
 {
-	T tmp(t1);
+	char tmp(t1);
 	t1 = t2;
 	t2 = tmp;
 }

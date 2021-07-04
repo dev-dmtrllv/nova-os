@@ -1,14 +1,14 @@
-check_drive_ext:
-	xor ax, ax
-	xor dx, dx
-	mov ah, 0x41
-	mov dl, byte [drive]
-	mov bx, 0x55aa
-	int 0x13
+; check_drive_ext:
+	; xor ax, ax
+	; xor dx, dx
+	; mov ah, 0x41
+	; mov dl, byte [drive]
+	; mov bx, 0x55aa
+	; int 0x13
 	; jc .drive_ext_err
 	; cmp bx, 0xaa55
 	; jnz .drive_ext_err
-	ret
+	; ret
 
 ; .drive_ext_err:
 	; stc
@@ -19,6 +19,8 @@ check_drive_ext:
 
 
 read_sectors:				; cx = number of sectors to load
+	add cx, 1
+.read_sectors_loop:
 	mov ax, 0x4200
 	xor dx, dx
 	mov ds, dx
@@ -37,11 +39,11 @@ read_sectors:				; cx = number of sectors to load
 	add ax, word [bytesPerSector]
 	mov word [dap_buf_off], ax
 	jc .read_sectors_add_seg
-	jmp read_sectors
+	jmp .read_sectors_loop
 
 .read_sectors_add_seg:
 	add word [dap_buf_seg], 0x1000
-	jmp read_sectors
+	jmp .read_sectors_loop
 
 .read_sectors_err:
 	ret
@@ -127,7 +129,6 @@ load_cluster_chain:							; dx = start cluster; write all the cluster number fro
 	jmp .load_cluster_chain_loop
 
 .load_cluster_chain_done:
-	mov word [0x7e00 + bp], ax				; save the last cluster number
 	mov cx, bp
 	shr cx, 1
 	ret
@@ -193,5 +194,3 @@ dap_lba:					dd 0x0
 data_sector:				dw 0x0
 
 file_name:					dw 0x0
-
-%include "16bit/bpb.asm"
