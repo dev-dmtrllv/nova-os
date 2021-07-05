@@ -21,24 +21,9 @@ extern "C" void start()
 	idt::init();
 	vga::write_line("IDT initialized");
 
-	__asm__ volatile("sti;");
-	// __asm__ volatile("int $0x3");
-
-	// __asm__ volatile("int $0x1");
-	// __asm__ volatile("int $0x2");
-	// __asm__ volatile("int $0x3");
-	// __asm__ volatile("int $0x4");
-	// __asm__ volatile("int $0x5");
-	// __asm__ volatile("int $0x6");
-	// __asm__ volatile("int $0x7");
-	// __asm__ volatile("int $0x8");
-	// __asm__ volatile("int $0x9");
-	// __asm__ volatile("int $0xa");
-	// __asm__ volatile("int $0xb");
-	// __asm__ volatile("int $0xc");
-	// __asm__ volatile("int $0x13");
-	// __asm__ volatile("int $0x14");
-	// __asm__ volatile("int $0x15");/
+	__asm__ volatile("int $0x0");
+	__asm__ volatile("int $0x1");
+	__asm__ volatile("int $0x2");
 
 	vga::write_line("stop");
 	__asm__ volatile("cli; hlt;");
