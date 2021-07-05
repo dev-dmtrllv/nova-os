@@ -53,7 +53,7 @@ LIB_SRC = $(shell find src/lib -name '*.cpp')
 LIB_OBJ := $(patsubst src/lib%, out/$(ARCH)/lib%, $(patsubst %.cpp, %.o, $(LIB_SRC)))
 
 KINIT_OBJ = $(patsubst src/arch/$(ARCH)/kinit%, out/$(ARCH)/kinit%, $(patsubst %.cpp, %.o, $(KINIT_CPP_SRC)))
-KINIT_OBJ += $(patsubst src/arch/$(ARCH)/kinit%, out/$(ARCH)/kinit%, $(patsubst %.asm, %.o, $(KINIT_ASM_SRC)))
+KINIT_OBJ += $(patsubst src/arch/$(ARCH)/kinit%, out/$(ARCH)/kinit%, $(patsubst %.asm, %.s.o, $(KINIT_ASM_SRC)))
 KINIT_OBJ += $(patsubst src/kernel/drivers/%, out/$(ARCH)/kinit/drivers/%, $(patsubst %.cpp, %.o, $(KERNEL_DRIVERS_CPP_SRC)))
 KINIT_OBJ += $(patsubst src/arch/x86/%, out/$(ARCH)/%, $(patsubst %.asm, %.o, $(ARCH_SRC)))
 KINIT_OBJ += $(LIB_OBJ)
@@ -79,7 +79,7 @@ out/x86/boot.bin: out/x86/boot/boot1.bin out/x86/boot/boot2.bin
 	cat $^ > $@
 
 
-out/$(ARCH)/kinit/%.o: src/arch/$(ARCH)/kinit/%.asm
+out/$(ARCH)/kinit/%.s.o: src/arch/$(ARCH)/kinit/%.asm
 	@mkdir -p $(@D)
 	nasm -f elf32 $^ -o $@ 
 

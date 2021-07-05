@@ -4,11 +4,17 @@
 
 #include <lib/string.h>
 
-#define FRAME_BLOCK_SIZE 4096
+#define PAGE_SIZE 0x1000
+#define PAGE_ENTRIES 1024
+
+#define FRAME_BLOCK_SIZE 0x1000
 #define MAX_RAM 0x100000000
 #define FRAME_INFO_LIST_SIZE 1024
 
 extern uint32_t kinit_end;
+
+extern "C" void load_page_directory(uint32_t page_directory_ptr);
+extern "C" void enable_paging();
 
 namespace kmm
 {
@@ -40,6 +46,9 @@ namespace kmm
 		mem_info_t memory_info_list[64];
 
 		frame_info_t frame_info_list[FRAME_INFO_LIST_SIZE];
+
+		uint32_t page_directory[1024] __attribute__((aligned(0x1000)));
+		uint32_t page_table[1024] __attribute__((aligned(0x1000)));
 
 		uint32_t *bitmap = nullptr;
 		uint32_t bitmap_size;
@@ -237,10 +246,23 @@ void kmm::init()
 
 	// also set the bitmap frames reserved (reserve everything from bitmap address up till max ram)
 	uint32_t bitmap_index = align(reinterpret_cast<uint32_t>(bitmap), FRAME_BLOCK_SIZE) / FRAME_BLOCK_SIZE;
-	uint32_t top_index = align(static_cast<uint32_t>(max_ram), FRAME_BLOCK_SIZE);
-	for(;bitmap_index < top_index; bitmap_index++)
+	uint32_t top_index = align(static_cast<uint32_t>(max_ram), FRAME_BLOCK_SIZE) / FRAME_BLOCK_SIZE;
+
+	for (; bitmap_index < top_index; bitmap_index++)
 		set_bitmap(bitmap_index, false);
-	
+
+	// everything is set no just zero out the frame_info_list and setup and empty page directory
+	memset(frame_info_list, 0, sizeof(frame_info_t) * FRAME_INFO_LIST_SIZE);
+	memset(page_directory, 0x00000002, sizeof(uint32_t) * PAGE_ENTRIES);
+
+	for (size_t i = 0; i < PAGE_ENTRIES; i++)
+		page_table[i] = (i * PAGE_SIZE) | 3;
+
+	// put the page table in as the first entry in the page directory
+	page_directory[0] = reinterpret_cast<uint32_t>(page_table) | 3;
+
+	load_page_directory(reinterpret_cast<uint32_t>(page_directory));
+	enable_paging();
 }
 
 void *kmm::alloc_frames(size_t number_of_frames)
@@ -273,11 +295,11 @@ void *kmm::alloc_frames(size_t number_of_frames)
 					uint32_t frame_start_index = (frame_index * 32) + frame_bit;
 					for (size_t k = 0; k < number_of_frames; k++)
 						kmm::set_bitmap(frame_start_index + k, false);
-				
+
 					// find free entry in the frame_info_list
-					for(size_t k = 0; k < FRAME_INFO_LIST_SIZE; k++)
+					for (size_t k = 0; k < FRAME_INFO_LIST_SIZE; k++)
 					{
-						if(frame_info_list[k].address == 0 && frame_info_list[k].address == 0)
+						if (frame_info_list[k].address == 0 && frame_info_list[k].address == 0)
 						{
 							frame_info_list[k].address = frame_start_index * FRAME_BLOCK_SIZE;
 							frame_info_list[k].size = number_of_frames;
