@@ -141,6 +141,7 @@ $(BOOT_IMG): out/$(ARCH)/boot.bin out/$(ARCH)/kinit.bin out/$(ARCH)/kernel.bin
 
 
 usb: $(BOOT_IMG)
+# mountpoint -q $(USB_MOUNT_POINT) && sudo umount $(USB_MOUNT_POINT)
 	sudo dd if=$^ of=$(USB_PATH) bs=1M status=progress
 
 xxd: $(DUMP_FILES)

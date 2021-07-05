@@ -5,6 +5,8 @@
 #include <lib/string.h>
 
 #define FRAME_BLOCK_SIZE 4096
+#define MAX_RAM 0x100000000
+#define FRAME_INFO_LIST_SIZE 1024
 
 extern uint32_t kinit_end;
 
@@ -12,7 +14,6 @@ namespace kmm
 {
 	namespace
 	{
-
 		struct bios_mem_info_t
 		{
 			uint32_t base_l;
@@ -30,7 +31,15 @@ namespace kmm
 			bool reserved;
 		} __attribute__((packed));
 
-		mem_info_t memory_info[32];
+		struct frame_info_t
+		{
+			uint32_t address;
+			size_t size;
+		} __attribute__((packed));
+
+		mem_info_t memory_info_list[64];
+
+		frame_info_t frame_info_list[FRAME_INFO_LIST_SIZE];
 
 		uint32_t *bitmap = nullptr;
 		uint32_t bitmap_size;
@@ -41,11 +50,6 @@ namespace kmm
 				return num;
 			return ((num / alignment) + 1) * alignment;
 		}
-
-		// uint64_t align(uint64_t num)
-		// {
-		// 	return align(num, FRAME_BLOCK_SIZE);
-		// }
 
 		void set_bitmap(size_t frame_index, bool free)
 		{
@@ -77,12 +81,17 @@ void kmm::init()
 	vga::write("Memory map:\n");
 	vga::write("from:   \t\tto: \t\t\tsize:\n");
 
-	while (size < bios_info->mem_list_size)
+	for (size_t i = 0; i < bios_info->mem_list_size; i++)
 	{
-		mem_info_t *info = &memory_info[size];
-		info->base = ((static_cast<uint64_t>(bios_mem_info_ptr[size].base_h) << 32) | bios_mem_info_ptr[size].base_l);
-		info->size = ((static_cast<uint64_t>(bios_mem_info_ptr[size].size_h) << 32) | bios_mem_info_ptr[size].size_l);
-		info->reserved = bios_mem_info_ptr[size].type != 1;
+		mem_info_t *info = &memory_info_list[size];
+		info->base = ((static_cast<uint64_t>(bios_mem_info_ptr[i].base_h) << 32) | bios_mem_info_ptr[i].base_l);
+		info->size = ((static_cast<uint64_t>(bios_mem_info_ptr[i].size_h) << 32) | bios_mem_info_ptr[i].size_l);
+		info->reserved = bios_mem_info_ptr[i].type != 1;
+
+		if (info->base >= MAX_RAM) // first check if we are within the 4GB bounds
+			continue;
+		else if (info->base + info->size - 1 >= MAX_RAM) // else if the top lays above the MAX_RAM we will reset the size to never go beyond the MAX_RAM
+			info->size = MAX_RAM - info->base;
 
 		if ((info->base == 0) && (info->size == 0))
 			break;
@@ -121,8 +130,8 @@ void kmm::init()
 	for (size_t i = 0; i < size - 1; i++)
 	{
 
-		uint64_t b = memory_info[i].base;
-		uint64_t t = memory_info[i].base + memory_info[i].size;
+		uint64_t b = memory_info_list[i].base;
+		uint64_t t = memory_info_list[i].base + memory_info_list[i].size;
 
 		int gap_dir = 0; // 0 means no gap, -1 means gap downwards, 1 means gap upwards
 
@@ -132,8 +141,8 @@ void kmm::init()
 		{
 			if (i != j)
 			{
-				uint64_t b2 = memory_info[j].base;
-				uint64_t t2 = memory_info[j].base + memory_info[j].size;
+				uint64_t b2 = memory_info_list[j].base;
+				uint64_t t2 = memory_info_list[j].base + memory_info_list[j].size;
 				if (t == b2 || t2 == b)
 				{
 					gap_dir = 0;
@@ -160,7 +169,7 @@ void kmm::init()
 
 		if (gap_dir != 0)
 		{
-			mem_info_t *info = &memory_info[total_size++];
+			mem_info_t *info = &memory_info_list[total_size++];
 			info->size = gap;
 			info->base = gap_dir == -1 ? b - gap : t;
 			info->reserved = true;
@@ -170,8 +179,6 @@ void kmm::init()
 			vga::write_line("found gap: ", buf1, "\tsize: ", buf2);
 		}
 	}
-
-	vga::write_line("");
 
 	utoa(min_ram, buf1, 16);
 	utoa(max_ram, buf2, 16);
@@ -194,15 +201,15 @@ void kmm::init()
 
 	for (size_t i = 0; i < total_size; i++)
 	{
-		if (memory_info[i].reserved)
+		if (memory_info_list[i].reserved)
 		{
-			if (memory_info[i].base < max_ram)
+			if (memory_info_list[i].base < max_ram)
 			{
-				uint32_t base_frame_index = align(memory_info[i].base, FRAME_BLOCK_SIZE) / FRAME_BLOCK_SIZE;
-				uint32_t limit_frame_index = align(memory_info[i].base + memory_info[i].size, FRAME_BLOCK_SIZE) / FRAME_BLOCK_SIZE;
+				uint32_t base_frame_index = align(memory_info_list[i].base, FRAME_BLOCK_SIZE) / FRAME_BLOCK_SIZE;
+				uint32_t limit_frame_index = align(memory_info_list[i].base + memory_info_list[i].size, FRAME_BLOCK_SIZE) / FRAME_BLOCK_SIZE;
 
-				utoa(memory_info[i].base, buf1, 16);
-				utoa(memory_info[i].base + memory_info[i].size, buf2, 16);
+				utoa(memory_info_list[i].base, buf1, 16);
+				utoa(memory_info_list[i].base + memory_info_list[i].size, buf2, 16);
 
 				vga::write("set reserved bitmap for: ", buf1);
 				for (size_t i = 0; i < (16 - strlen(buf1)); i++)
@@ -215,7 +222,7 @@ void kmm::init()
 		}
 	}
 
-	// set the first 4 frames reserved (this is for the IVT, GDT, BIOS_KERNEL_INFO_AREA)
+	// set the first 4 frames reserved (this is for the IDT, GDT, BIOS_KERNEL_INFO_AREA)
 	for (size_t i = 0; i < 4; i++)
 		set_bitmap(i, false);
 
@@ -224,9 +231,16 @@ void kmm::init()
 	const uint32_t kinit_end = align(reinterpret_cast<uint32_t>(&kinit_end), FRAME_BLOCK_SIZE) / FRAME_BLOCK_SIZE;
 	for (; kinit_start <= kinit_end; kinit_start++)
 		set_bitmap(kinit_start, false);
+
+	// do the same for the kernel (since the kernel has no functionality yet we can omit this)
+	// ...
+
+	// also set the bitmap frames reserved (reserve everything from bitmap address up till max ram)
+	uint32_t bitmap_index = align(reinterpret_cast<uint32_t>(bitmap), FRAME_BLOCK_SIZE) / FRAME_BLOCK_SIZE;
+	uint32_t top_index = align(static_cast<uint32_t>(max_ram), FRAME_BLOCK_SIZE);
+	for(;bitmap_index < top_index; bitmap_index++)
+		set_bitmap(bitmap_index, false);
 	
-	// void* a = alloc_frames(32);
-	// vga::write_line(utoa((uint32_t)a, buf1, 16));
 }
 
 void *kmm::alloc_frames(size_t number_of_frames)
@@ -237,36 +251,39 @@ void *kmm::alloc_frames(size_t number_of_frames)
 
 	char buf[8];
 
-	for(size_t i = 0; i < bitmap_size; i++)
+	for (size_t i = 0; i < bitmap_size; i++)
 	{
 		uint32_t n = bitmap[i];
 
 		// loop through each bit till we find a row of free frames
-		for(size_t j = 0; j < 32; j++)
+		for (size_t j = 0; j < 32; j++)
 		{
-			if(((n >> j) & 1) == 0) // bit j is free
+			if (((n >> j) & 1) == 0) // bit j is free
 			{
-				if(free_frames == 0)
+				if (free_frames == 0)
 				{
 					frame_index = i;
 					frame_bit = j;
-
-					// vga::write(utoa(i, buf, 10) ," ");
-					// vga::write(utoa(j, buf, 10) ," -   ");
 				}
 
 				free_frames++;
-				
-				if(free_frames == number_of_frames)
+
+				if (free_frames == number_of_frames)
 				{
 					uint32_t frame_start_index = (frame_index * 32) + frame_bit;
-					for(size_t k = 0; k < number_of_frames; k++)
+					for (size_t k = 0; k < number_of_frames; k++)
 						kmm::set_bitmap(frame_start_index + k, false);
-
-					// vga::write("ended ");
-					// vga::write(utoa(i, buf, 10) ," ");
-					// vga::write(utoa(j, buf, 10) ," -   ");
-
+				
+					// find free entry in the frame_info_list
+					for(size_t k = 0; k < FRAME_INFO_LIST_SIZE; k++)
+					{
+						if(frame_info_list[k].address == 0 && frame_info_list[k].address == 0)
+						{
+							frame_info_list[k].address = frame_start_index * FRAME_BLOCK_SIZE;
+							frame_info_list[k].size = number_of_frames;
+							break;
+						}
+					}
 					return reinterpret_cast<void *>(frame_start_index * FRAME_BLOCK_SIZE);
 				}
 			}
@@ -278,4 +295,26 @@ void *kmm::alloc_frames(size_t number_of_frames)
 	}
 
 	return nullptr;
+}
+
+void kmm::free_frames(void *address)
+{
+	uint32_t adr = reinterpret_cast<uint32_t>(address);
+	size_t size = 0;
+	for (size_t i = 0; i < FRAME_INFO_LIST_SIZE; i++)
+	{
+		if (frame_info_list[i].address == adr)
+		{
+			size = frame_info_list[i].size;
+			frame_info_list[i].address = 0;
+			frame_info_list[i].size = 0;
+			break;
+		}
+	}
+	if (size > 0)
+	{
+		uint32_t base_frame_index = align(adr, FRAME_BLOCK_SIZE) / FRAME_BLOCK_SIZE;
+		for (size_t j = 0; j < size; j++)
+			kmm::set_bitmap(base_frame_index + j, true);
+	}
 }
