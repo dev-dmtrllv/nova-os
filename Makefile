@@ -8,7 +8,7 @@ GCC_PATH = ~/opt/cross/bin
 
 CFLAGS = -ffreestanding $(OPTIMIZATION) -Wall -Wextra -fno-exceptions -fno-rtti -fstrength-reduce -fomit-frame-pointer -finline-functions -nostdinc -fno-builtin -fno-common -Iinclude -D$(ARCH)
 QEMU_FLAGS = -drive format=raw,file=$(BOOT_IMG) -no-reboot -no-shutdown
-LD_FLAGS = -fno-common -ffreestanding -nostdlib -lgcc $(OPTIMIZATION)
+LD_FLAGS = -fno-common -ffreestanding -nostdlib -lgcc $(OPTIMIZATION) -D$(ARCH)
 
 LINK_OUTPUT = bin
 
@@ -63,9 +63,7 @@ KERNEL_OBJ += $(patsubst src/kernel/drivers/%, out/$(ARCH)/kernel/drivers/%, $(p
 KERNEL_OBJ += $(patsubst src/arch/x86%, out/$(ARCH)%, $(patsubst %.asm, %.o, $(ARCH_SRC)))
 KERNEL_OBJ += $(LIB_OBJ)
 
-
 USB_PATH = /dev/sdb
-
 
 out/x86/boot/boot1.bin: src/arch/x86/boot/boot.asm src/arch/x86/boot/16bit/common.asm src/arch/x86/boot/16bit/screen.asm
 	@mkdir -p $(@D)
@@ -142,7 +140,8 @@ $(BOOT_IMG): out/$(ARCH)/boot.bin out/$(ARCH)/kinit.bin out/$(ARCH)/kernel.bin
 
 usb: $(BOOT_IMG)
 # mountpoint -q $(USB_MOUNT_POINT) && sudo umount $(USB_MOUNT_POINT)
-	sudo dd if=$^ of=$(USB_PATH) bs=1M status=progress
+# sudo dd if=$^ of=$(USB_PATH) bs=1M status=progress
+	sudo dd if=$^ of=$(USB_PATH) status=progress
 
 xxd: $(DUMP_FILES)
 

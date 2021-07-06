@@ -98,7 +98,14 @@ void vga::write(const char *str)
 
 	while (*str != 0)
 	{
-		if (*str == '\n')
+		if(*str == '\b')
+		{
+			str++;
+			offset -= 1;
+			ptr = reinterpret_cast<volatile char *>(0xb8000 + (offset * 2));
+			*ptr = ' ';
+		}
+		else if (*str == '\n')
 		{
 			str++;
 			offset = ((offset / VGA_TXT_WIDTH) + 1) * VGA_TXT_WIDTH;
@@ -108,6 +115,7 @@ void vga::write(const char *str)
 				vga::scroll();
 			}
 			ptr = reinterpret_cast<volatile char *>(0xb8000 + (offset * 2));
+			*(reinterpret_cast<volatile char *>(0xb8000 + (offset * 2)) +1 ) = vga::color_attr;
 		}
 		else if (*str == '\t')
 		{

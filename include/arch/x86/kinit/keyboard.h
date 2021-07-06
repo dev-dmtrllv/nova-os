@@ -1,0 +1,106 @@
+#pragma once
+
+namespace keyboard
+{
+    enum class scan_code
+    {
+        ESCAPE = 0x1,
+        ONE = 0x2,
+        TWO = 0x3,
+        THREE = 0x4,
+        FOUR = 0x5,
+        FIVE = 0x6,
+        SIX = 0x7,
+        SEVEN = 0x8,
+        EIGHT = 0x9,
+        NINE = 0xa,
+        ZERO = 0xb,
+        MINUS = 0x0C,
+        EQUALS = 0x0D,
+        BACKSPACE = 0x0E,
+        TAB = 0x0F,
+        Q = 0x10,
+        W = 0x11,
+        E = 0x12,
+        R = 0x13,
+        T = 0x14,
+        Y = 0x15,
+        U = 0x16,
+        I = 0x17,
+        O = 0x18,
+        P = 0x19,
+        SQ_OPEN = 0x1A,
+        SQ_CLOSE = 0x1B,
+        RETURN = 0x1C,
+        L_CTRL = 0x1D,
+        A = 0x1E,
+        S = 0x1F,
+        D = 0x20,
+        F = 0x21,
+        G = 0x22,
+        H = 0x23,
+        J = 0x24,
+        K = 0x25,
+        L = 0x26,
+        SEMICOLON = 0x27,
+        SINGLE_QUOTE = 0x28,
+        BACK_TICK = 0x29,
+        L_SHIFT = 0x2A,
+        BACK_SLASH = 0x2B,
+        Z = 0x2C,
+        X = 0x2D,
+        C = 0x2E,
+        V = 0x2F,
+        B = 0x30,
+        N = 0x31,
+        M = 0x32,
+        COMMA = 0x33,
+        POINT = 0x34,
+        SLASH = 0x35,
+        R_SHIFT = 0x36,
+        NUM_MUL = 0x37,
+        L_ALT = 0x38,
+        SPACE = 0x39,
+        CAPS_LOCK = 0x3A,
+        F1 = 0x3B,
+        F2 = 0x3C,
+        F3 = 0x3D,
+        F4 = 0x3E,
+        F5 = 0x3F,
+        F6 = 0x40,
+        F7 = 0x41,
+        F8 = 0x42,
+        F9 = 0x43,
+        F10 = 0x44,
+        NUM_LOCK = 0x45,
+        SCROLL_LOCK = 0x46,
+        NUM_7 = 0x47,
+        NUM_8 = 0x48,
+        NUM_9 = 0x49,
+        NUM_SUB = 0x4A,
+        NUM_4 = 0x4B,
+        NUM_5 = 0x4C,
+        NUM_6 = 0x4D,
+        NUM_ADD = 0x4E,
+        NUM_1 = 0x4F,
+        NUM_2 = 0x50,
+        NUM_3 = 0x51,
+        NUM_0 = 0x52,
+        NUM_DOT = 0x53,
+        F11 = 0x57,
+		F12 = 0x58,
+		RELEASED = 0x80,
+    };
+
+	typedef void(*keyboard_event_callback)(keyboard::scan_code code);
+
+	char kc2c(keyboard::scan_code code);
+
+	void register_key_up(keyboard_event_callback);
+	void register_key_down(keyboard_event_callback);
+
+	void unregister_key_up(keyboard_event_callback);
+	void unregister_key_down(keyboard_event_callback);
+
+    void init();
+};
