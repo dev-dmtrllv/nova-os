@@ -31,6 +31,8 @@ namespace vga
 	void set_color(const vga::color color);
 	void set_background(const vga::color color);
 
+	void write_at(const char* str, size_t x, size_t y);
+
 	void write(const char *str);
 	void write_line(const char *str);
 

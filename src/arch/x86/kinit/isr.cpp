@@ -5,6 +5,13 @@
 #include <lib/stdint.h>
 #include <lib/string.h>
 
+#define PIC1 0x20 /* IO base address for master PIC */
+#define PIC2 0xA0 /* IO base address for slave PIC */
+#define PIC1_COMMAND PIC1
+#define PIC1_DATA (PIC1 + 1)
+#define PIC2_COMMAND PIC2
+#define PIC2_DATA (PIC2 + 1)
+
 extern "C" void isr0();	 // Division by zero exception
 extern "C" void isr1();	 // Debug exception
 extern "C" void isr2();	 // Non maskable interrupt
@@ -76,24 +83,27 @@ extern "C" void isr_handler(isr::registers_t *registers)
 
 extern "C" void irq_handler(isr::registers_t *registers)
 {
-	char buf[16];
-
-	utoa(registers->int_no, buf, 10);
-	vga::write_line("irq ", buf, " recieved!");
-
-	if (registers->int_no >= 40)
-	{
-		// Send reset signal to slave.
-		io::outb(0xA0, 0x20);
-	}
-	// Send reset signal to master. (As well as slave, if necessary).
-	io::outb(0x20, 0x20);
-
 	if (isr::interrupt_handlers[registers->int_no] != 0)
 	{
 		isr::interrupt_handler_callback handler = isr::interrupt_handlers[registers->int_no];
 		handler(registers);
 	}
+	else
+	{
+		char buf[16];
+		utoa(registers->int_no, buf, 10);
+		vga::write_line("recieved unhandeld irq ", buf, "!");
+	}
+
+	// send End Of Interrupt (EOI) message
+	if (registers->int_no >= 40)
+	{
+		// Send reset signal to slave.
+		io::outb(0xA0, 0x20);
+	}
+
+	// Send reset signal to master. (As well as slave, if necessary).
+	io::outb(0x20, 0x20);
 }
 
 void isr::init()
@@ -161,9 +171,51 @@ void isr::init()
 	idt::set_gate(45, (uint32_t)irq13, 0x08, 0x8E);
 	idt::set_gate(46, (uint32_t)irq14, 0x08, 0x8E);
 	idt::set_gate(47, (uint32_t)irq15, 0x08, 0x8E);
+
+	for(size_t i = 0; i < 16; i++)
+		set_irq_mask(i);
 }
 
 void isr::register_interrupt_handler(size_t index, isr::interrupt_handler_callback cb)
 {
 	interrupt_handlers[index] = cb;
+	if (index >= 32)
+		clear_irq_mask(index - 32);
+}
+
+// setting the mask will tell the pic to ignore this irq
+void isr::set_irq_mask(unsigned char irq_line)
+{
+	uint16_t port;
+	uint8_t value;
+
+	if (irq_line < 8)
+	{
+		port = PIC1_DATA;
+	}
+	else
+	{
+		port = PIC2_DATA;
+		irq_line -= 8;
+	}
+	value = io::inb(port) | (1 << irq_line);
+	io::outb(port, value);
+}
+
+void isr::clear_irq_mask(unsigned char irq_line)
+{
+	uint16_t port;
+	uint8_t value;
+
+	if (irq_line < 8)
+	{
+		port = PIC1_DATA;
+	}
+	else
+	{
+		port = PIC2_DATA;
+		irq_line -= 8;
+	}
+	value = io::inb(port) & ~(1 << irq_line);
+	io::outb(port, value);
 }

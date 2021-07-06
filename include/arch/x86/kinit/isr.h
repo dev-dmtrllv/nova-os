@@ -39,7 +39,6 @@
 #define IRQ14 46
 #define IRQ15 47
 
-
 namespace isr
 {
     struct registers_t
@@ -50,8 +49,10 @@ namespace isr
         uint32_t eip, cs, eflags, useresp, ss;           // Pushed by the processor automatically.
     };
 
-	typedef void(*interrupt_handler_callback)(isr::registers_t*);
-    
+    typedef void (*interrupt_handler_callback)(isr::registers_t *);
+
     void init();
     void register_interrupt_handler(size_t, interrupt_handler_callback);
+    void set_irq_mask(unsigned char irq_line);
+    void clear_irq_mask(unsigned char irq_line);
 };
