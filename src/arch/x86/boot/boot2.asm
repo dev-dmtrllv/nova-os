@@ -46,10 +46,11 @@ boot2:
 	pusha
 	push ds
 	push es
-    mov word [file_name], kernel_file_name 	; load kinit
+    mov word [file_name], kernel_file_name 	; load kernel
 	mov word [dap_buf_off], 0x0000
 	mov word [dap_buf_seg], KERNEL_SEG
 	call read_file
+	mov word [kernel_clusters], cx
 	pop es
 	pop ds
 	popa
@@ -70,14 +71,34 @@ boot2:
 	popa
     jc err_kinit_missing
 
+
+	mov ax, 0xb101								; pci check
+	int 0x1a
+	cmp ah, 0
+	je pci_available_check_1
+	jmp set_boot_info							; else keep the pci support at 0
+
+pci_available_check_1:
+	xor ah, ah
+	cmp edx, "PCI "
+	je pci_available_check_2
+	jmp set_boot_info
+	
+pci_available_check_2:
+	mov byte [pci_support], al
+	mov byte [pci_last_bus], cl
+
+set_boot_info:
     pusha
 	xor ax, ax
 	mov es, ax
 	mov di, memory_array						; load the memory map before the kernel init
 	call get_memory_map
 	mov di, BIOS_KERNEL_INFO_AREA				; store numbers of memory info list items
-	mov [es:di], dword bp
-	mov [es:di + 2], dword memory_array			; store the pointer to the memory info list
+	mov [es:di], word bp
+	mov [es:di + 2], word memory_array			; store pointer to the memory info list
+	mov [es:di + 4], word kernel_size			; store pointer to the kernel size
+	mov [es:di + 6], word pci_support			; pci support
 	popa
 
     call check_a20								; check the a20 and enable
@@ -127,6 +148,7 @@ a20_enabled:
 	rep stosw
 
 	lidt [_idt]
+	
     mov	eax, cr0								; set cr0 PE-bit to enable 32bit
   	or eax, 1
   	mov cr0, eax
@@ -175,12 +197,24 @@ queue_cleared:
 	mov gs, ax
 	mov ss, ax
 	mov esp, LIN_KINIT_ADDR - 8  			    ; Set stack to grown downwards from 0x10000 - 8 
- 
-    mov eax, 0x10000
-    xor ebx, ebx
-    mov ebx, [eax]
 	
+	xor eax, eax								; now we can calculate the size of the kernel in bytesZ
+	mov ecx, eax
+	mov ax, word [bytesPerSector]
+	mov cx, word [sectorsPerCluster]
+	mul ecx
+	xor ecx, ecx
+	mov cx, word [kernel_clusters]
+	mul ecx
+	mov dword [kernel_size], eax
+
     jmp dword 0x8:LIN_KINIT_ADDR
 
-memory_array:
-	times 64 dd 0
+memory_array: times 64 dd 0
+
+kernel_size: dd 0
+
+kernel_clusters: dd 0
+
+pci_support: db 0
+pci_last_bus: db 0

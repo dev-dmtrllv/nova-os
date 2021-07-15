@@ -245,3 +245,27 @@ size_t strlen(char* str)
 		i++;
 	return i;
 }
+
+int strncmp(char* str1, char* str2, size_t length)
+{
+	for(size_t i = 0, l = length - 1; i < l; i++)
+	{
+		if(*str1 != *str2)
+			break;
+		str1++;
+		str2++;
+	}
+	return *(reinterpret_cast<const unsigned char*>(str1)) - *(reinterpret_cast<const unsigned char*>(str2));
+}
+
+int strcmp(char* str1, char* str2)
+{
+	while(*str1)
+	{
+		if(*str1 != *str2)
+			break;
+		str1++;
+		str2++;
+	}
+	return *(reinterpret_cast<const unsigned char*>(str1)) - *(reinterpret_cast<const unsigned char*>(str2));
+}

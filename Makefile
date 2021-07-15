@@ -47,7 +47,12 @@ KINIT_ASM_SRC := $(wildcard src/arch/$(ARCH)/kinit/*.asm)
 
 KERNEL_CPP_SRC := $(wildcard src/kernel/*.cpp)
 KERNEL_DRIVERS_CPP_SRC = $(shell find src/kernel/drivers -name '*.cpp')
-ARCH_SRC = $(wildcard src/arch/$(ARCH)/*.asm)
+
+ARCH_ASM_SRC = $(wildcard src/arch/$(ARCH)/*.asm)
+ARCH_CPP_SRC = $(wildcard src/arch/$(ARCH)/*.cpp)
+
+ARCH_OBJ = $(patsubst src/arch/$(ARCH)/%, out/$(ARCH)/%, $(patsubst %.asm, %.s.o, $(ARCH_ASM_SRC)))
+ARCH_OBJ += $(patsubst src/arch/$(ARCH)/%, out/$(ARCH)/%, $(patsubst %.cpp, %.c.o, $(ARCH_CPP_SRC)))
 
 LIB_SRC = $(shell find src/lib -name '*.cpp')
 LIB_OBJ := $(patsubst src/lib%, out/$(ARCH)/lib%, $(patsubst %.cpp, %.o, $(LIB_SRC)))
@@ -55,13 +60,12 @@ LIB_OBJ := $(patsubst src/lib%, out/$(ARCH)/lib%, $(patsubst %.cpp, %.o, $(LIB_S
 KINIT_OBJ = $(patsubst src/arch/$(ARCH)/kinit%, out/$(ARCH)/kinit%, $(patsubst %.cpp, %.o, $(KINIT_CPP_SRC)))
 KINIT_OBJ += $(patsubst src/arch/$(ARCH)/kinit%, out/$(ARCH)/kinit%, $(patsubst %.asm, %.s.o, $(KINIT_ASM_SRC)))
 KINIT_OBJ += $(patsubst src/kernel/drivers/%, out/$(ARCH)/kinit/drivers/%, $(patsubst %.cpp, %.o, $(KERNEL_DRIVERS_CPP_SRC)))
-KINIT_OBJ += $(patsubst src/arch/x86/%, out/$(ARCH)/%, $(patsubst %.asm, %.o, $(ARCH_SRC)))
-KINIT_OBJ += $(LIB_OBJ)
+KINIT_OBJ += $(LIB_OBJ) $(ARCH_OBJ)
 
 KERNEL_OBJ = $(patsubst src/kernel/%, out/$(ARCH)/kernel/%, $(patsubst %.cpp, %.o, $(KERNEL_CPP_SRC)))
 KERNEL_OBJ += $(patsubst src/kernel/drivers/%, out/$(ARCH)/kernel/drivers/%, $(patsubst %.cpp, %.o, $(KERNEL_DRIVERS_CPP_SRC)))
-KERNEL_OBJ += $(patsubst src/arch/x86%, out/$(ARCH)%, $(patsubst %.asm, %.o, $(ARCH_SRC)))
-KERNEL_OBJ += $(LIB_OBJ)
+KERNEL_OBJ += $(patsubst src/arch/$(ARCH)%, out/$(ARCH)%, $(patsubst %.asm, %.o, $(ARCH_SRC)))
+KERNEL_OBJ += $(LIB_OBJ) $(ARCH_OBJ)
 
 USB_PATH = /dev/sdb
 
@@ -98,6 +102,14 @@ out/$(ARCH)/kernel/%.o: src/kernel/%.cpp
 	$(GCC) -c $(CFLAGS) -D$(ARCH) $^ -o $@ 
 
 out/$(ARCH)/lib/%.o: src/lib/%.cpp
+	@mkdir -p $(@D)
+	$(GCC) -c $(CFLAGS) -D$(ARCH) $^ -o $@ 
+
+out/$(ARCH)/%.s.o: src/arch/$(ARCH)/%.asm
+	@mkdir -p $(@D)
+	nasm -f elf32 $^ -o $@ 
+
+out/$(ARCH)/%.c.o: src/arch/$(ARCH)/%.cpp
 	@mkdir -p $(@D)
 	$(GCC) -c $(CFLAGS) -D$(ARCH) $^ -o $@ 
 

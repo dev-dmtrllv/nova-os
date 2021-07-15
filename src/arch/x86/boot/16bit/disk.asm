@@ -161,6 +161,8 @@ read_file: 							; set [file_name] to point to the filename string
 	pop word [dap_buf_off]
 	pop word [dap_buf_seg]
 
+	push cx
+
 .read_file_cluster:
 	mov ax, [0x7e00 + bp]			; point to the cluster number
 	call cluster_to_lba
@@ -172,6 +174,7 @@ read_file: 							; set [file_name] to point to the filename string
 	pop cx
 	add bp, 2
 	loop .read_file_cluster
+	pop cx
 	ret
 	
 .read_file_not_found:

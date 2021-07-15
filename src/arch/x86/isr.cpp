@@ -1,5 +1,5 @@
-#include <arch/x86/kinit/isr.h>
-#include <arch/x86/kinit/idt.h>
+#include <arch/x86/isr.h>
+#include <arch/x86/idt.h>
 #include <arch/x86/io.h>
 #include <kernel/drivers/vga.h>
 #include <lib/stdint.h>
@@ -69,15 +69,23 @@ namespace isr
 
 extern "C" void isr_handler(isr::registers_t *registers)
 {
-	char buf[16];
-	utoa(registers->int_no, buf, 10);
-	vga::write_line("isr ", buf, " recieved!");
-
-	if (registers->int_no == 13)
+	if (isr::interrupt_handlers[registers->int_no] != 0)
 	{
-		utoa(registers->err_code, buf, 10);
-		vga::write_line("general protection fault. err: ", buf);
-		__asm__ volatile("hlt;");
+		isr::interrupt_handler_callback handler = isr::interrupt_handlers[registers->int_no];
+		handler(registers);
+	}
+	else
+	{
+		char buf[16];
+		utoa(registers->int_no, buf, 10);
+		vga::write_line("isr ", buf, " recieved!");
+
+		if (registers->int_no == 13)
+		{
+			utoa(registers->err_code, buf, 10);
+			vga::write_line("general protection fault. err: ", buf);
+			__asm__ volatile("hlt;");
+		}
 	}
 }
 
@@ -172,13 +180,15 @@ void isr::init()
 	idt::set_gate(46, (uint32_t)irq14, 0x08, 0x8E);
 	idt::set_gate(47, (uint32_t)irq15, 0x08, 0x8E);
 
-	for(size_t i = 0; i < 16; i++)
+	for (size_t i = 0; i < 16; i++)
 		set_irq_mask(i);
 }
 
+// register a callback to the
 void isr::register_interrupt_handler(size_t index, isr::interrupt_handler_callback cb)
 {
 	interrupt_handlers[index] = cb;
+	// we only need to clear the mask for all interrupts above the exceptions (exceptions are from 0 till 31)
 	if (index >= 32)
 		clear_irq_mask(index - 32);
 }
@@ -202,6 +212,7 @@ void isr::set_irq_mask(unsigned char irq_line)
 	io::outb(port, value);
 }
 
+// clearing the irq mask will tell the pic to stop ignoring this irq
 void isr::clear_irq_mask(unsigned char irq_line)
 {
 	uint16_t port;

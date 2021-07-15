@@ -1,6 +1,8 @@
-#include <arch/x86/kinit/idt.h>
-#include <arch/x86/kinit/isr.h>
+#include <arch/x86/idt.h>
+#include <arch/x86/isr.h>
+
 #include <kernel/drivers/vga.h>
+
 #include <lib/stdint.h>
 #include <lib/string.h>
 

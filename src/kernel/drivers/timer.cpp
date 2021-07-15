@@ -1,5 +1,6 @@
-#include <arch/x86/kinit/timer.h>
-#include <arch/x86/kinit/isr.h>
+#include <kernel/drivers/timer.h>
+
+#include <arch/x86/isr.h>
 #include <arch/x86/io.h>
 
 #include <kernel/drivers/vga.h>

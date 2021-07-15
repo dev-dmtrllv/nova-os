@@ -71,9 +71,13 @@
 ```
 
 ## Step 1 (writing the first stage bootloader)
-When the computer starts the bios will look for an bootable drive. It checks the last 4 bytes of the first sector of every drive. If those bytes matches 0xAA55 it will load the first sector from the drive into memory (at location 0x7c00) and starts executing it. The goal of the first stage bootloader is to load the 2nd stage since the first stage is only 512 bytes in size (too small to make a good working bootloader). The first stage will search for the 2nd bootloader binary on the drive and will load it into memory. Then we pass control to the 2nd bootloader.
+When the computer starts the bios will look for an bootable drive. It checks the last 4 bytes of the first sector of every drive. If those bytes matches 0xAA55 it will load the first sector from the drive into memory (at location 0x7c00) and starts executing it. The goal of the first stage bootloader is to load the 2nd stage since the first stage is only 512 bytes in size (too small to make a good working bootloader). The first stage will search for the 2nd bootloader binary on the drive and will load it into memory. Then we pass control to the 2nd bootloader. I chose to put the 2nd stage just after the first sector so it can be easly loaded. The address where the 2nd stage will be loaded is 0x1000 (to not having to worry about the real mode segmentation).
 
+## Step 2 (the 2nd stage bootloader)
+Now that the 2nd stage is loaded and got control it will prepare the environment to run c/c++ code, gets memory information from the bios, load the kernel initialization binaries (kinit) and kernel binaries into memory (at 0x10000 and 0x30000 respectively), enable the a20 line to get acces to the whole 4GiB of memory, create a GDT for the kinit and kernel, loads an empty IDT, enable 32 bits, prepare information for the kinit code (pointers to data such as the memory info list or kernel size). Then it will jump to the kinit binary.
 
+## Step 3 (kinit)
+Identity map the first 4MiB (page directory entry 0) this is needed to keep the kinit working, 
 
 # Bootloader Memory Layout
 ```

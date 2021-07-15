@@ -1,6 +1,7 @@
-#include <arch/x86/kinit/keyboard.h>
+#include <kernel/drivers/keyboard.h>
+
 #include <arch/x86/io.h>
-#include <arch/x86/kinit/isr.h>
+#include <arch/x86/isr.h>
 
 #include <kernel/drivers/vga.h>
 
